@@ -87,16 +87,6 @@ const RegenerateModal = ({
   );
 };
 
-// Emoji dinamica in base al numero di persone (niente asset grafici)
-const PeopleEmoji = ({ count }: { count: number }) => {
-  const emoji = count === 1 ? '🧑‍🍳' : count <= 3 ? '👥' : count <= 7 ? '👨‍👩‍👧‍👦' : '🎉';
-  return (
-    <div className="people-emoji" aria-hidden="true">
-      {emoji}
-    </div>
-  );
-};
-
 // Cucine popolari proposte come chip; qualsiasi altra si aggiunge
 // dal campo di testo libero
 const SUGGESTED_CUISINES = [
@@ -377,7 +367,7 @@ function App({ user }: { user: User }) {
       ? ` (limite: ${menuData.input.max_calories} kcal)`
       : '';
 
-    return `<!DOCTYPE html><html><head><title>CucinIAmo - Menù</title><style>body{font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:20px}h1{text-align:center;color:#D35400}h2{color:#D35400;border-bottom:1px solid #ddd;padding-bottom:4px}h3{color:#2B8A3E}.dish{margin-bottom:30px;page-break-inside:avoid}</style></head><body><h1>🍳 CucinIAmo 🍳</h1><p style="text-align:center">Per ${menuData.input.num_people} person${menuData.input.num_people === 1 ? 'a' : 'e'} — Totale: ~${total} kcal/persona${budget}</p>${mealsHTML}</body></html>`;
+    return `<!DOCTYPE html><html><head><title>CucinIAmo - Menù</title><style>body{font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:20px;color:#201A2B}h1{text-align:center;color:#D6349E}h2{color:#B02C8F;border-bottom:1px solid #ECEAF0;padding-bottom:4px}h3{color:#F3704D}.dish{margin-bottom:30px;page-break-inside:avoid}</style></head><body><h1>🍅 CucinIAmo</h1><p style="text-align:center">Per ${menuData.input.num_people} person${menuData.input.num_people === 1 ? 'a' : 'e'} — Totale: ~${total} kcal/persona${budget}</p>${mealsHTML}</body></html>`;
   };
 
   // Riepilogo calorie del menù corrente
@@ -440,7 +430,7 @@ function App({ user }: { user: User }) {
           <span>⏱️ {dish.recipe.prep_time_minutes + dish.recipe.cook_time_minutes} min totali</span>
           <span>📊 {dish.recipe.difficulty}</span>
           <span>🥩 P {dish.nutrition.protein_g}g · 🍞 C {dish.nutrition.carbs_g}g · 🧈 G {dish.nutrition.fat_g}g</span>
-          {dish.recipe.can_prep_ahead && <span>✅ Preparabile in anticipo</span>}
+          {dish.recipe.can_prep_ahead && <span className="prep-ahead">✅ Preparabile in anticipo</span>}
         </div>
         <details className="recipe-details">
           <summary>📖 Vedi Ricetta</summary>
@@ -475,6 +465,12 @@ function App({ user }: { user: User }) {
   return (
     <div className="app">
       <header className="header">
+        <img src="/logo.png" alt="" className="header-logo" />
+        <div className="header-titles">
+          <h1>CucinIAmo</h1>
+          <p className="tagline">Il tuo menù, generato con l'AI</p>
+        </div>
+        <div className="header-spacer" />
         <div className="user-chip">
           {user.photoURL && <img src={user.photoURL} alt="" className="user-avatar" referrerPolicy="no-referrer" />}
           <span className="user-email">{user.email}</span>
@@ -482,16 +478,13 @@ function App({ user }: { user: User }) {
             Esci
           </button>
         </div>
-        <h1>🍳 CucinIAmo 🍳</h1>
-        <p>Menù personalizzati con l'AI, per ogni pasto e con le calorie sotto controllo</p>
       </header>
 
       <main className="main-content">
         {!menu ? (
           <form onSubmit={handleSubmit} className="input-form">
             <div className="form-section people-section">
-              <h2>👥 Per quante persone?</h2>
-              <PeopleEmoji count={formData.num_people} />
+              <h2>Quanti siete a tavola?</h2>
               <div className="people-counter">
                 <button
                   type="button"
@@ -511,7 +504,7 @@ function App({ user }: { user: User }) {
             </div>
 
             <div className="form-section">
-              <h2>🍽️ Quali pasti vuoi creare?</h2>
+              <h2>Quali pasti prepariamo?</h2>
               <p className="section-hint">Seleziona uno o più pasti, oppure l'intera giornata</p>
               <div className="chip-container centered">
                 {MEAL_OPTIONS.map(option => (
@@ -535,7 +528,7 @@ function App({ user }: { user: User }) {
             </div>
 
             <div className="form-section">
-              <h2>🌍 Da quali cucine vuoi farti ispirare?</h2>
+              <h2>Che sapori portiamo in tavola?</h2>
               <p className="section-hint">Scegli tra le proposte o aggiungine di tue (es. "pugliese", "etiope", "fusion nikkei")</p>
               <div className="chip-container centered">
                 {SUGGESTED_CUISINES.map(cuisine => (
@@ -574,8 +567,8 @@ function App({ user }: { user: User }) {
 
             <div className="form-section ingredients-dual">
               <div className="ingredient-column prefer">
-                <h2>💚 Cosa ti piace?</h2>
-                <p className="section-hint">Ingredienti che ami</p>
+                <h2>💚 Cosa vi piace?</h2>
+                <p className="section-hint">Ingredienti che amate</p>
                 <div className="ingredient-input">
                   <input
                     type="text"
@@ -618,7 +611,7 @@ function App({ user }: { user: User }) {
             </div>
 
             <div className="form-section">
-              <h2>🥗 Esigenze speciali?</h2>
+              <h2>Esigenze speciali?</h2>
               <p className="section-hint">Seleziona se necessario</p>
               <div className="chip-container centered">
                 {DIETARY_OPTIONS.map(option => (
@@ -635,7 +628,7 @@ function App({ user }: { user: User }) {
             </div>
 
             <div className="form-section">
-              <h2>🔥 Vuoi un limite di calorie?</h2>
+              <h2>Teniamo d'occhio le calorie?</h2>
               <p className="section-hint">Opzionale: kcal massime a persona sull'insieme dei pasti scelti (es. 1700 per la giornata, 400 per una colazione)</p>
               <div className="calorie-control">
                 <button
@@ -664,35 +657,45 @@ function App({ user }: { user: User }) {
 
             <div className="form-section options-dual">
               <div className="option-column">
-                <h2>👨‍🍳 Quanto vuoi impegnarti?</h2>
+                <h2>👨‍🍳 Quanto vi impegnate?</h2>
                 <div className="radio-group vertical">
-                  {(['facile', 'medio', 'avanzato'] as DifficultyLevel[]).map(level => (
-                    <label key={level} className={`bounce-btn ${formData.difficulty_level === level ? 'selected' : ''}`}>
+                  {([
+                    { value: 'facile', label: 'Relax', desc: 'Poco tempo, zero stress' },
+                    { value: 'medio', label: 'Mi piace cucinare', desc: 'Il giusto equilibrio' },
+                    { value: 'avanzato', label: 'Sfidami, chef!', desc: 'Piatti ambiziosi' },
+                  ] as { value: DifficultyLevel; label: string; desc: string }[]).map(opt => (
+                    <label key={opt.value} className={`bounce-btn ${formData.difficulty_level === opt.value ? 'selected' : ''}`}>
                       <input
                         type="radio"
                         name="difficulty"
-                        value={level}
-                        checked={formData.difficulty_level === level}
+                        value={opt.value}
+                        checked={formData.difficulty_level === opt.value}
                         onChange={(e) => setFormData(prev => ({ ...prev, difficulty_level: e.target.value as DifficultyLevel }))}
                       />
-                      {level === 'facile' ? '😊 Relax, poco tempo' : level === 'medio' ? '👨‍🍳 Mi piace cucinare' : '🔥 Sfidami, chef!'}
+                      <span className="option-label">{opt.label}</span>
+                      <span className="option-desc">{opt.desc}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div className="option-column">
-                <h2>💰 Quanto vuoi spendere?</h2>
+                <h2>💰 Quanto spendete?</h2>
                 <div className="radio-group vertical">
-                  {(['economico', 'medio', 'premium'] as BudgetLevel[]).map(level => (
-                    <label key={level} className={`bounce-btn ${formData.budget_level === level ? 'selected' : ''}`}>
+                  {([
+                    { value: 'economico', label: 'Budget friendly', desc: 'Spesa contenuta' },
+                    { value: 'medio', label: 'Il giusto', desc: 'Qualità e prezzo' },
+                    { value: 'premium', label: 'Niente limiti!', desc: 'Ingredienti pregiati' },
+                  ] as { value: BudgetLevel; label: string; desc: string }[]).map(opt => (
+                    <label key={opt.value} className={`bounce-btn ${formData.budget_level === opt.value ? 'selected' : ''}`}>
                       <input
                         type="radio"
                         name="budget"
-                        value={level}
-                        checked={formData.budget_level === level}
+                        value={opt.value}
+                        checked={formData.budget_level === opt.value}
                         onChange={(e) => setFormData(prev => ({ ...prev, budget_level: e.target.value as BudgetLevel }))}
                       />
-                      {level === 'economico' ? '🪙 Budget friendly' : level === 'medio' ? '💵 Il giusto' : '💎 Niente limiti!'}
+                      <span className="option-label">{opt.label}</span>
+                      <span className="option-desc">{opt.desc}</span>
                     </label>
                   ))}
                 </div>
@@ -700,7 +703,7 @@ function App({ user }: { user: User }) {
             </div>
 
             <div className="form-section">
-              <h2>🤖 Quale AI cucinerà per te?</h2>
+              <h2>🤖 Quale AI cucinerà per voi?</h2>
               <p className="section-hint">Scegli il modello Gemini che genererà il menù</p>
               <div className="model-select-wrapper">
                 <select
@@ -744,9 +747,9 @@ function App({ user }: { user: User }) {
                 </>
               ) : (
                 <>
-                  <span className="btn-icon">🍳</span>
-                  <span>Crea il Menù!</span>
-                  <span className="btn-icon">🍳</span>
+                  <span>✨</span>
+                  <span>Crea il nostro menù</span>
+                  <span>✨</span>
                 </>
               )}
             </button>
@@ -754,14 +757,14 @@ function App({ user }: { user: User }) {
         ) : (
           <div className="menu-result">
             <div className="menu-header">
-              <h2>🍳 Il Tuo Menù 🍳</h2>
+              <h2>Il tuo menù</h2>
               <p>
                 Per {menu.input.num_people} person{menu.input.num_people === 1 ? 'a' : 'e'} —{' '}
                 {menu.meals.map(m => MEAL_LABELS[m.meal_type]).join(', ')}
               </p>
               {renderCaloriesSummary(menu)}
               <div className="menu-actions">
-                <button onClick={() => setMenu(null)} className="action-button">← Nuovo Menù</button>
+                <button onClick={() => setMenu(null)} className="action-button">← Nuovo menù</button>
                 <button onClick={downloadPDF} className="action-button primary">📄 Stampa PDF</button>
               </div>
             </div>
@@ -769,7 +772,7 @@ function App({ user }: { user: User }) {
             <div className="tabs">
               <button className={activeTab === 'menu' ? 'active' : ''} onClick={() => setActiveTab('menu')}>📋 Menù</button>
               <button className={activeTab === 'shopping' ? 'active' : ''} onClick={() => setActiveTab('shopping')}>🛒 Lista Spesa</button>
-              <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>⏰ Preparazione</button>
+              <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>⏰ Timeline</button>
             </div>
 
             {activeTab === 'menu' && (
@@ -788,7 +791,7 @@ function App({ user }: { user: User }) {
 
             {activeTab === 'shopping' && (
               <div className="shopping-container">
-                <h3>🛒 Lista della Spesa</h3>
+                <h3>🛒 Lista della spesa</h3>
                 {menu.shopping_list && menu.shopping_list.categories &&
                   Object.entries(menu.shopping_list.categories).map(([category, items]) => (
                     items && Array.isArray(items) && items.length > 0 && (
@@ -808,7 +811,7 @@ function App({ user }: { user: User }) {
 
             {activeTab === 'timeline' && (
               <div className="timeline-container">
-                <h3>⏰ Piano di Preparazione</h3>
+                <h3>⏰ Piano di preparazione</h3>
                 {menu.timeline && (
                   <>
                     {menu.timeline.in_advance && menu.timeline.in_advance.length > 0 && (
@@ -862,7 +865,7 @@ function App({ user }: { user: User }) {
       />
 
       <footer className="footer">
-        <p>🔥 Powered by <strong>Google Gemini</strong> via Firebase AI Logic</p>
+        <p>✨ Powered by <strong>Google Gemini</strong> via Firebase AI Logic</p>
       </footer>
     </div>
   );

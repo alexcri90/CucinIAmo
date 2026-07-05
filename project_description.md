@@ -8,7 +8,7 @@
 ## 📊 Stato del Progetto
 
 **Ultimo aggiornamento:** 5 Luglio 2026
-**Versione corrente:** 1.0.0
+**Versione corrente:** 1.1.0
 
 ### 🎯 Cos'è CucinIAmo
 
@@ -18,12 +18,13 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 2. **Cucine libere**: ~23 cucine suggerite come chip + campo di testo libero per aggiungerne qualsiasi altra ("vietnamita", "pugliese", "fusion nikkei"...)
 3. **Scelta dei pasti**: colazione, pranzo, cena, spuntini, in qualunque combinazione — incluso il preset "Giornata intera"
 4. **Limite calorie opzionale**: budget di kcal per persona sull'insieme dei pasti richiesti (es. 1700 kcal per la giornata, 400 per una colazione); ogni piatto riporta kcal e macro stimate per porzione e i totali sono ricalcolati client-side
-5. **Asset grafici**: volutamente minimali (emoji), da rifare in una fase successiva
+5. **Design system dedicato** (v1.1.0): gradiente brand viola→magenta→corallo→arancio, logo a pomodoro, font Space Grotesk + Instrument Sans, neutri caldi — definito nella cartella `CucinIAmo design system/` e applicato a tutta l'app
 
 ### ✅ Storia delle versioni
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.1.0** | **Applicazione del design system CucinIAmo**: gradiente brand viola→magenta→corallo→arancio, font Space Grotesk (titoli) + Instrument Sans (UI), neutri caldi, chip/card/tab ridisegnati, nuovo logo (pomodoro, `frontend/public/logo.png`, anche favicon), login e header rinnovati. Fonte del design: cartella `CucinIAmo design system/` (mock HTML interattivo) |
 | **1.0.0** | **Trasformazione in CucinIAmo**: rimozione backend Python/Datapizza e test (era una demo locale non usata in produzione), nuovo modello dati (Meal/Dish/NutritionInfo), nuovi prompt con budget calorico, form rinnovato (pasti, cucine ibride, limite kcal), nuova palette non natalizia, docs riscritte |
 | 0.16.0 | Migrazione a Firebase: hosting Spark, login Google + allowlist Firestore, generazione client-side via Firebase AI Logic, selettore modello Gemini |
 | ≤0.15.x | Progetto natalizio originale (backend FastAPI + Datapizza AI multi-agent, 120 test) — vedi la history git per i dettagli |
@@ -100,8 +101,8 @@ D:\GitHubRepos\AI_Recipes\
     └── src\
         ├── main.tsx              # Entry point: AuthGate → App
         ├── App.tsx               # Form (pasti, cucine, kcal, ...) + viste risultati
-        ├── App.css               # Stili (palette: --primary arancio, --secondary verde, --accent ambra)
-        ├── index.css             # Reset base Vite
+        ├── App.css               # Design system: gradiente brand, neutri caldi, token in :root
+        ├── index.css             # Reset base + fondamenta (font, sfondo, selection)
         ├── firebase.ts           # Init Firebase (Auth, Firestore, AI Logic, App Check opz.)
         │
         ├── components\
@@ -245,7 +246,7 @@ Somme di calorie e lista spesa aggregata possono essere sbagliate: si ricalcolan
 
 | Idea | Note |
 |------|------|
-| 🎨 **Asset grafici** | Sostituire le emoji con illustrazioni/logo dedicati (il codice usa solo emoji proprio per rendere facile questo passaggio) |
+| 🎨 **Illustrazioni dedicate** | Il logo c'è (v1.1.0); restano le emoji come icone di sezione/piatto, sostituibili con un set di icone coerente col design system |
 | 📔 **Diario calorie** | Salvare su Firestore cosa si è mangiato giorno per giorno con totali e storico (richiede nuove security rules per una collection `users/{uid}/diary`) — valutato e rimandato in v1.0.0 |
 | 💾 **Salvataggio menù** | Persistere i menù generati (oggi vivono solo nello stato React) |
 | 🌐 **i18n** | Oggi l'app è solo in italiano (UI e prompt) |
@@ -254,4 +255,4 @@ Somme di calorie e lista spesa aggregata possono essere sbagliate: si ricalcolan
 ---
 
 *Documento tecnico del progetto CucinIAmo.*
-*Versione documento: 6.0 — 5 Luglio 2026*
+*Versione documento: 7.0 — 5 Luglio 2026*
