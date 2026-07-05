@@ -1,6 +1,8 @@
 # 🔥 Guida al Deployment su Firebase (100% GRATUITO)
 
-Questa guida ti porta da zero all'app online su Firebase, **senza spendere un centesimo e senza rischio di costi nascosti**. È pensata per chi non ha mai usato Firebase o Google Cloud.
+Questa guida ti porta da zero all'app **CucinIAmo** online su Firebase, **senza spendere un centesimo e senza rischio di costi nascosti**. È pensata per chi non ha mai usato Firebase o Google Cloud.
+
+> 💡 CucinIAmo va pubblicato in un **nuovo progetto Google Cloud/Firebase**, separato da quello del vecchio menù natalizio: segui questa guida dall'inizio.
 
 ---
 
@@ -38,7 +40,7 @@ Prima di tutto, la cosa che ti interessa di più:
 
 1. Vai su [console.firebase.google.com](https://console.firebase.google.com) e accedi col tuo account Google
 2. Clicca **"Crea un progetto"** (o "Add project")
-3. Nome progetto: es. `christmas-world-menu` → prendi nota del **Project ID** che appare sotto il nome (es. `christmas-world-menu` o `christmas-world-menu-a1b2c`): ti servirà dopo
+3. Nome progetto: es. `cuciniamo` → prendi nota del **Project ID** che appare sotto il nome (es. `cuciniamo` o `cuciniamo-a1b2c`): ti servirà dopo
 4. Quando chiede **Google Analytics**: **disattivalo** (non serve e semplifica tutto)
 5. Clicca **"Crea progetto"** e attendi
 
@@ -47,7 +49,7 @@ Prima di tutto, la cosa che ti interessa di più:
 ### 2️⃣ Registra la Web App e ottieni la configurazione
 
 1. Nella pagina principale del progetto, clicca sull'icona **`</>`** (Web)
-2. Nickname: `christmas-menu-web`
+2. Nickname: `cuciniamo-web`
 3. **NON** spuntare "Also set up Firebase Hosting" (lo faremo con la CLI)
 4. Clicca **"Registra app"**
 5. Ti verrà mostrato un blocco di codice `firebaseConfig` con 6 valori (`apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`). **Tienili sotto mano** (li ritrovi comunque sempre in ⚙️ *Impostazioni progetto → Le tue app*)
@@ -58,7 +60,7 @@ Prima di tutto, la cosa che ti interessa di più:
 Nel repository, copia `frontend/.env.example` in `frontend/.env` e incolla i tuoi valori:
 
 ```powershell
-cd D:\GitHubRepos\Christmas-World-Menu
+cd D:\GitHubRepos\AI_Recipes
 Copy-Item frontend\.env.example frontend\.env
 notepad frontend\.env
 ```
@@ -67,9 +69,9 @@ Esempio di com'è fatto una volta compilato:
 
 ```env
 VITE_FIREBASE_API_KEY=AIzaSyB...
-VITE_FIREBASE_AUTH_DOMAIN=christmas-world-menu.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=christmas-world-menu
-VITE_FIREBASE_STORAGE_BUCKET=christmas-world-menu.firebasestorage.app
+VITE_FIREBASE_AUTH_DOMAIN=cuciniamo.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=cuciniamo
+VITE_FIREBASE_STORAGE_BUCKET=cuciniamo.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789012
 VITE_FIREBASE_APP_ID=1:123456789012:web:abc123def456
 ```
@@ -119,7 +121,7 @@ Apri il file `.firebaserc` nella root del repository e sostituisci il placeholde
 ```json
 {
   "projects": {
-    "default": "christmas-world-menu"
+    "default": "cuciniamo"
   }
 }
 ```
@@ -127,7 +129,7 @@ Apri il file `.firebaserc` nella root del repository e sostituisci il placeholde
 ### 9️⃣ Deploy! 🚀
 
 ```powershell
-cd D:\GitHubRepos\Christmas-World-Menu
+cd D:\GitHubRepos\AI_Recipes
 firebase deploy
 ```
 
@@ -139,7 +141,7 @@ Questo comando, in automatico:
 Alla fine vedrai l'URL del sito:
 
 ```
-Hosting URL: https://christmas-world-menu.web.app
+Hosting URL: https://cuciniamo.web.app
 ```
 
 ### 🔟 Aggiungi le email autorizzate (l'allowlist)
@@ -162,7 +164,7 @@ Per **revocare** un accesso: elimina il documento corrispondente. Fine.
 1. Apri `https://IL-TUO-PROJECT-ID.web.app`
 2. Clicca "Accedi con Google" → login col tuo account
 3. Se la tua email è nell'allowlist entri nell'app; altrimenti vedi "Accesso non autorizzato"
-4. Genera un menù 🎄 (puoi anche scegliere il modello Gemini dal menù a tendina nel form)
+4. Genera un menù 🍳 (puoi anche scegliere il modello Gemini dal menù a tendina nel form)
 
 ---
 
@@ -171,7 +173,7 @@ Per **revocare** un accesso: elimina il documento corrispondente. Fine.
 Ogni volta che modifichi il codice:
 
 ```powershell
-cd D:\GitHubRepos\Christmas-World-Menu
+cd D:\GitHubRepos\AI_Recipes
 firebase deploy
 ```
 
@@ -225,19 +227,12 @@ Se non vuoi farlo ora: lascia `VITE_RECAPTCHA_SITE_KEY` vuota, l'app funziona lo
 
 ---
 
-## 🧹 Pulizia del vecchio hosting su Render (opzionale)
+## 🧹 Pulizia del vecchio progetto natalizio (opzionale)
 
-Il progetto era stato pubblicato su Render.com (`christmas-menu-app.onrender.com` — il backend risulta già non raggiungibile). Anche Render era sul piano gratuito, quindi **non stai pagando nulla** neanche lì, ma per ordine puoi:
-
-1. Andare su [dashboard.render.com](https://dashboard.render.com)
-2. Eliminare i servizi `christmas-menu-api` e `christmas-menu-app`
+CucinIAmo vive in un progetto Firebase nuovo. Quando non ti serve più il vecchio "Christmas Menu Generator", puoi eliminare il suo progetto Firebase: console Firebase → progetto vecchio → ⚙️ *Impostazioni progetto* → in fondo, **"Elimina progetto"**. Anche lì era tutto sul piano gratuito, quindi non c'è fretta: non sta costando nulla.
 
 ---
 
-## 🏗️ Com'è cambiata l'architettura
+## 🏗️ Architettura in breve
 
-**Prima (Render)**: React → backend FastAPI/Datapizza su server Python → Gemini API
-
-**Ora (Firebase, senza server)**: React (su Hosting) → Firebase AI Logic → Gemini API, con login Google + allowlist Firestore davanti a tutto.
-
-Il backend Python con gli agenti Datapizza **resta nel repository** (con i suoi 120 test) come dimostrazione della versione multi-agent: si avvia in locale con `uvicorn backend.main:app --reload --port 8000` e si esplora da `http://localhost:8000/docs`. Il sito pubblicato non ne ha più bisogno.
+**React (su Firebase Hosting) → Firebase AI Logic → Gemini API**, con login Google + allowlist Firestore davanti a tutto. Nessun server, nessun backend: i prompt e la normalizzazione delle risposte vivono in `frontend/src/services/aiService.ts`.

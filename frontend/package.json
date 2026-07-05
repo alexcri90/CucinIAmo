@@ -1,11 +1,10 @@
 {
-  "name": "frontend",
+  "name": "cuciniamo",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:full": "concurrently -k -n \"backend,frontend\" -c \"yellow,cyan\" \"cd .. && set PYTHONIOENCODING=utf-8 && .venv\\Scripts\\python.exe -m uvicorn backend.main:app --reload --port 8000\" \"vite\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -13,8 +12,7 @@
   "dependencies": {
     "firebase": "^12.0.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-icons": "^5.5.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -22,7 +20,6 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

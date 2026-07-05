@@ -1,19 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════
-   🎄 CHRISTMAS MENU GENERATOR - Professional UI Design
-   Framework: Datapizza AI Challenge 2025
-   Compatibile con App.tsx esistente
+   🍳 CUCINIAMO - Professional UI Design
+   Palette neutra "food": arancio caldo + verde erba + ambra.
+   Compatibile con App.tsx
    ═══════════════════════════════════════════════════════════════ */
 
 /* ─── CSS Variables ─── */
 :root {
-  --christmas-red: #C41E3A;
-  --christmas-red-dark: #8B0000;
-  --christmas-red-light: #FF6B6B;
-  --christmas-green: #165B33;
-  --christmas-green-light: #1E8449;
-  --christmas-gold: #FFD700;
-  --christmas-gold-dark: #D4AF37;
-  --snow-white: #FFFAFA;
+  --primary: #D9480F;
+  --primary-dark: #A63A0B;
+  --primary-light: #F76707;
+  --secondary: #2B8A3E;
+  --secondary-light: #37A24D;
+  --accent: #F2A50C;
+  --accent-dark: #D18E00;
   --warm-cream: #FFF8E7;
   --text-dark: #2C3E50;
   --text-light: #6C7A89;
@@ -39,44 +38,17 @@
 body {
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   background: linear-gradient(
-    180deg, 
-    #1a1a3e 0%,           /* Viola scuro notte */
-    #2d2a54 15%,          /* Viola medio */
-    #4a3f6b 30%,          /* Viola-lavanda */
-    #6b5a7a 45%,          /* Malva crepuscolare */
-    #8f7a8a 55%,          /* Rosa antico */
-    #c4a5a0 70%,          /* Rosa pesca tenue */
-    #d4b8a8 85%,          /* Pesca chiaro orizzonte */
-    #3d4a6b 100%          /* Blu neve in basso */
+    180deg,
+    #FFF4E6 0%,
+    #FFE8CC 35%,
+    #F8E8D8 70%,
+    #EFE3D3 100%
   );
   background-attachment: fixed;
   min-height: 100vh;
   color: var(--text-dark);
   line-height: 1.6;
   position: relative;
-}
-
-/* Stelle nel cielo crepuscolare */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50vh;
-  background-image: 
-    radial-gradient(2px 2px at 10% 10%, rgba(255,255,255,0.8), transparent),
-    radial-gradient(2px 2px at 25% 8%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 40% 15%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(2px 2px at 60% 5%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 75% 12%, rgba(255,255,255,0.8), transparent),
-    radial-gradient(2px 2px at 85% 8%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 92% 18%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(2px 2px at 15% 25%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 50% 20%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(2px 2px at 70% 22%, rgba(255,255,255,0.4), transparent);
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* ─── Main App Container ─── */
@@ -103,7 +75,7 @@ body::before {
   text-align: center;
   padding: 40px 30px;
   margin-bottom: 30px;
-  background: linear-gradient(135deg, rgba(196, 30, 58, 0.95) 0%, rgba(22, 91, 51, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(217, 72, 15, 0.95) 0%, rgba(43, 138, 62, 0.95) 100%);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-strong);
   position: relative;
@@ -133,7 +105,7 @@ body::before {
 
 .header p {
   font-size: 1.15rem;
-  color: var(--christmas-gold);
+  color: var(--accent);
   font-weight: 500;
   position: relative;
   z-index: 1;
@@ -193,7 +165,7 @@ body::before {
 
 .form-section h2 {
   font-size: 1.2rem;
-  color: var(--christmas-green);
+  color: var(--secondary);
   margin-bottom: 15px;
   font-weight: 600;
 }
@@ -231,76 +203,50 @@ body::before {
   font-style: italic;
 }
 
-/* ─── Gingerbread Icons ─── */
-.gingerbread-container {
+/* ─── People Emoji (contatore persone) ─── */
+.people-emoji {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-bottom: 20px;
   min-height: 80px;
-  align-items: center;
-}
-
-.gingerbread-image {
-  height: 70px;
-  width: auto;
-  filter: drop-shadow(2px 3px 6px rgba(0,0,0,0.25));
-  transition: all 0.3s ease;
-}
-
-/* Animazione dondolamento dolce (default) */
-@keyframes sway {
-  0%, 100% { 
-    transform: rotate(-3deg) translateY(0); 
-  }
-  50% { 
-    transform: rotate(3deg) translateY(-2px); 
-  }
-}
-
-.gingerbread-image.sway {
+  font-size: 3.5rem;
+  filter: drop-shadow(2px 3px 6px rgba(0, 0, 0, 0.15));
   animation: sway 2s ease-in-out infinite;
 }
 
-/* Animazione shake per affollamento (6+ ospiti) */
-@keyframes shake {
-  0%, 100% { 
-    transform: translateX(0) rotate(-2deg); 
+@keyframes sway {
+  0%, 100% {
+    transform: rotate(-3deg) translateY(0);
   }
-  10%, 30%, 50%, 70%, 90% { 
-    transform: translateX(-3px) rotate(-4deg); 
-  }
-  20%, 40%, 60%, 80% { 
-    transform: translateX(3px) rotate(4deg); 
+  50% {
+    transform: rotate(3deg) translateY(-2px);
   }
 }
 
-.gingerbread-image.shake {
-  animation: shake 0.6s ease-in-out infinite;
-}
-
-/* ─── Guest Section ─── */
-.guests-section {
+/* ─── People Section ─── */
+.people-section {
   text-align: center;
 }
 
-.guests-section h2 {
+.people-section h2 {
   text-align: center;
 }
 
 /* ─── Guest Counter ─── */
-.guest-counter {
+.people-counter {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 25px;
 }
 
-.guest-counter button {
+.people-counter button {
   width: 56px;
   height: 56px;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-green-light) 100%);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
   color: white;
   font-size: 2rem;
   font-weight: bold;
@@ -309,35 +255,35 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 15px rgba(22, 91, 51, 0.3);
+  box-shadow: 0 4px 15px rgba(43, 138, 62, 0.3);
 }
 
-.guest-counter button:hover {
+.people-counter button:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(22, 91, 51, 0.4);
+  box-shadow: 0 6px 20px rgba(43, 138, 62, 0.4);
 }
 
-.guest-counter button:active {
+.people-counter button:active {
   animation: bounce 0.2s ease-out;
   transform: scale(0.95);
 }
 
-.guest-number-wrapper {
+.people-number-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.guest-number {
+.people-number {
   font-size: 3rem;
   font-weight: 700;
-  color: var(--christmas-red);
+  color: var(--primary);
   min-width: 80px;
   text-align: center;
   line-height: 1;
 }
 
-.guest-label {
+.people-label {
   font-size: 0.9rem;
   color: var(--text-light);
   text-transform: uppercase;
@@ -369,17 +315,17 @@ body::before {
 }
 
 .chip:hover {
-  border-color: var(--christmas-green);
-  background: rgba(22, 91, 51, 0.05);
+  border-color: var(--secondary);
+  background: rgba(43, 138, 62, 0.05);
   transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(22, 91, 51, 0.15);
+  box-shadow: 0 4px 12px rgba(43, 138, 62, 0.15);
 }
 
 .chip.selected {
-  background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-green-light) 100%);
-  border-color: var(--christmas-green);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+  border-color: var(--secondary);
   color: white;
-  box-shadow: 0 4px 12px rgba(22, 91, 51, 0.3);
+  box-shadow: 0 4px 12px rgba(43, 138, 62, 0.3);
 }
 
 /* ─── Ingredients Dual Layout ─── */
@@ -402,15 +348,15 @@ body::before {
 }
 
 .ingredient-column.prefer {
-  border-left: 4px solid var(--christmas-green);
+  border-left: 4px solid var(--secondary);
 }
 
 .ingredient-column.avoid {
-  border-left: 4px solid var(--christmas-red);
+  border-left: 4px solid var(--primary);
 }
 
 .ingredient-column.avoid h2 {
-  color: var(--christmas-red);
+  color: var(--primary);
 }
 
 /* ─── Ingredient Input ─── */
@@ -431,15 +377,15 @@ body::before {
 
 .ingredient-input input:focus {
   outline: none;
-  border-color: var(--christmas-green);
-  box-shadow: 0 0 0 3px rgba(22, 91, 51, 0.1);
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(43, 138, 62, 0.1);
 }
 
 .ingredient-input button {
   padding: 12px 18px;
   border: none;
   border-radius: var(--radius-md);
-  background: var(--christmas-green);
+  background: var(--secondary);
   color: white;
   font-size: 1.2rem;
   font-weight: 600;
@@ -449,16 +395,16 @@ body::before {
 }
 
 .ingredient-input button:hover {
-  background: var(--christmas-green-light);
+  background: var(--secondary-light);
   transform: translateY(-3px);
 }
 
 .ingredient-column.avoid .ingredient-input button {
-  background: var(--christmas-red);
+  background: var(--primary);
 }
 
 .ingredient-column.avoid .ingredient-input button:hover {
-  background: var(--christmas-red-light);
+  background: var(--primary-light);
 }
 
 /* ─── Ingredients List ─── */
@@ -473,7 +419,7 @@ body::before {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: linear-gradient(135deg, var(--christmas-green-light) 0%, var(--christmas-green) 100%);
+  background: linear-gradient(135deg, var(--secondary-light) 0%, var(--secondary) 100%);
   color: white;
   border-radius: var(--radius-xl);
   font-size: 0.9rem;
@@ -481,7 +427,7 @@ body::before {
 }
 
 .ingredient-tag.avoid {
-  background: linear-gradient(135deg, var(--christmas-red-light) 0%, var(--christmas-red) 100%);
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
 }
 
 .ingredient-tag button {
@@ -528,16 +474,16 @@ body::before {
 }
 
 .radio-group label:hover {
-  border-color: var(--christmas-green);
-  background: rgba(22, 91, 51, 0.05);
+  border-color: var(--secondary);
+  background: rgba(43, 138, 62, 0.05);
   transform: translateY(-2px);
 }
 
 .radio-group label.selected {
-  background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-green-light) 100%);
-  border-color: var(--christmas-green);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+  border-color: var(--secondary);
   color: white;
-  box-shadow: 0 4px 12px rgba(22, 91, 51, 0.3);
+  box-shadow: 0 4px 12px rgba(43, 138, 62, 0.3);
 }
 
 .radio-group input[type="radio"] {
@@ -571,9 +517,9 @@ body::before {
 .error-message {
   padding: 15px 20px;
   background: linear-gradient(135deg, #FDEDEE 0%, #FADBD8 100%);
-  border: 1px solid var(--christmas-red-light);
+  border: 1px solid var(--primary-light);
   border-radius: var(--radius-md);
-  color: var(--christmas-red-dark);
+  color: var(--primary-dark);
   font-weight: 500;
   font-family: 'Consolas', 'Monaco', monospace;
   word-break: break-word;
@@ -596,7 +542,7 @@ body::before {
 }
 
 .error-codes-info summary:hover {
-  color: var(--christmas-red);
+  color: var(--primary);
 }
 
 .error-codes-info ul {
@@ -611,7 +557,7 @@ body::before {
 }
 
 .error-codes-info li strong {
-  color: var(--christmas-red-dark);
+  color: var(--primary-dark);
   font-family: 'Consolas', 'Monaco', monospace;
 }
 
@@ -623,7 +569,7 @@ body::before {
   padding: 20px 35px;
   border: none;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-red-dark) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   font-size: 1.25rem;
   font-weight: 700;
@@ -634,7 +580,7 @@ body::before {
   justify-content: center;
   gap: 15px;
   letter-spacing: 0.5px;
-  box-shadow: 0 8px 25px rgba(196, 30, 58, 0.35);
+  box-shadow: 0 8px 25px rgba(217, 72, 15, 0.35);
   position: relative;
   overflow: hidden;
 }
@@ -656,7 +602,7 @@ body::before {
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(196, 30, 58, 0.45);
+  box-shadow: 0 12px 35px rgba(217, 72, 15, 0.45);
 }
 
 .submit-button:active:not(:disabled) {
@@ -704,12 +650,12 @@ body::before {
   text-align: center;
   margin-bottom: 30px;
   padding-bottom: 25px;
-  border-bottom: 2px solid var(--christmas-gold);
+  border-bottom: 2px solid var(--accent);
 }
 
 .menu-header h2 {
   font-size: 1.8rem;
-  color: var(--christmas-red);
+  color: var(--primary);
   margin-bottom: 8px;
 }
 
@@ -729,10 +675,10 @@ body::before {
 
 .action-button {
   padding: 12px 24px;
-  border: 2px solid var(--christmas-green);
+  border: 2px solid var(--secondary);
   border-radius: var(--radius-md);
   background: white;
-  color: var(--christmas-green);
+  color: var(--secondary);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -740,18 +686,18 @@ body::before {
 }
 
 .action-button:hover {
-  background: var(--christmas-green);
+  background: var(--secondary);
   color: white;
 }
 
 .action-button.primary {
-  background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-red-dark) 100%);
-  border-color: var(--christmas-red);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-color: var(--primary);
   color: white;
 }
 
 .action-button.primary:hover {
-  box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
+  box-shadow: 0 4px 15px rgba(217, 72, 15, 0.3);
   transform: translateY(-2px);
 }
 
@@ -785,34 +731,49 @@ body::before {
 
 .tabs button.active {
   background: white;
-  color: var(--christmas-green);
+  color: var(--secondary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ─── Courses Container ─── */
-.courses-container {
+.meals-container {
   display: flex;
   flex-direction: column;
   gap: 25px;
 }
 
 /* ─── Course Section ─── */
-.course-section {
+.meal-section {
   background: #FAFBFC;
   border-radius: var(--radius-lg);
   padding: 20px;
 }
 
-.course-type {
-  font-size: 1.3rem;
-  color: var(--christmas-red);
+.meal-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 15px;
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--christmas-gold);
+  border-bottom: 2px solid var(--accent);
+}
+
+.meal-title h3 {
+  font-size: 1.3rem;
+  color: var(--primary);
+}
+
+.meal-kcal {
+  color: var(--text-light);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* ─── Course Card ─── */
-.course-card {
+.dish-card {
   background: white;
   border-radius: var(--radius-md);
   padding: 20px;
@@ -822,16 +783,16 @@ body::before {
   transition: all var(--transition-fast);
 }
 
-.course-card:last-child {
+.dish-card:last-child {
   margin-bottom: 0;
 }
 
-.course-card:hover {
+.dish-card:hover {
   box-shadow: var(--shadow-medium);
   transform: translateY(-2px);
 }
 
-.course-card .course-header {
+.dish-card .dish-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -840,14 +801,14 @@ body::before {
   gap: 10px;
 }
 
-.course-card h4 {
+.dish-card h4 {
   font-size: 1.2rem;
   color: var(--text-dark);
   font-weight: 600;
 }
 
 .cuisine-badge {
-  background: linear-gradient(135deg, var(--christmas-gold) 0%, var(--christmas-gold-dark) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   color: #333;
   padding: 5px 12px;
   border-radius: var(--radius-xl);
@@ -855,14 +816,14 @@ body::before {
   font-weight: 600;
 }
 
-.course-description {
+.dish-description {
   color: var(--text-light);
   font-style: italic;
   margin-bottom: 12px;
   line-height: 1.5;
 }
 
-.course-meta {
+.dish-meta {
   display: flex;
   gap: 20px;
   color: var(--text-light);
@@ -870,7 +831,7 @@ body::before {
   margin-bottom: 15px;
 }
 
-.course-meta span {
+.dish-meta span {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -884,14 +845,14 @@ body::before {
 
 .recipe-details summary {
   cursor: pointer;
-  color: var(--christmas-green);
+  color: var(--secondary);
   font-weight: 600;
   padding: 10px 0;
   transition: all var(--transition-fast);
 }
 
 .recipe-details summary:hover {
-  color: var(--christmas-green-light);
+  color: var(--secondary-light);
 }
 
 .recipe-details[open] summary {
@@ -908,7 +869,7 @@ body::before {
 }
 
 .recipe-content h5 {
-  color: var(--christmas-green);
+  color: var(--secondary);
   margin: 15px 0 10px 0;
   font-size: 1rem;
 }
@@ -935,7 +896,7 @@ body::before {
 
 .shopping-container > h3 {
   font-size: 1.4rem;
-  color: var(--christmas-red);
+  color: var(--primary);
   margin-bottom: 20px;
   text-align: center;
 }
@@ -948,7 +909,7 @@ body::before {
 }
 
 .shopping-category h4 {
-  color: var(--christmas-green);
+  color: var(--secondary);
   margin-bottom: 12px;
   font-size: 1.1rem;
   display: flex;
@@ -983,7 +944,7 @@ body::before {
 
 .timeline-container > h3 {
   font-size: 1.4rem;
-  color: var(--christmas-red);
+  color: var(--primary);
   margin-bottom: 25px;
   text-align: center;
 }
@@ -993,11 +954,11 @@ body::before {
   border-radius: var(--radius-md);
   padding: 20px;
   margin-bottom: 20px;
-  border-left: 4px solid var(--christmas-green);
+  border-left: 4px solid var(--secondary);
 }
 
 .timeline-section h4 {
-  color: var(--christmas-green);
+  color: var(--secondary);
   margin-bottom: 15px;
   font-size: 1.15rem;
 }
@@ -1030,7 +991,7 @@ body::before {
 }
 
 .schedule-item .time {
-  background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-green-light) 100%);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
   color: white;
   padding: 5px 12px;
   border-radius: var(--radius-xl);
@@ -1049,13 +1010,13 @@ body::before {
   width: 100%;
   text-align: center;
   padding: 30px 20px;
-  color: rgba(255, 220, 180, 0.8);
+  color: var(--text-light);
   font-size: 0.95rem;
   margin-top: auto;
 }
 
 .footer strong {
-  color: #ffd9a0;
+  color: var(--primary);
 }
 
 /* ─── Responsive Design ─── */
@@ -1077,19 +1038,15 @@ body::before {
     padding: 25px 20px;
   }
   
-  .guest-number {
+  .people-number {
     font-size: 2.5rem;
   }
-  
-  .gingerbread-icon {
-    font-size: 2rem;
+
+  .people-emoji {
+    font-size: 2.5rem;
+    min-height: 60px;
   }
-  
-  .gingerbread-svg {
-    width: 38px;
-    height: 38px;
-  }
-  
+
   .chip-container,
   .radio-group {
     justify-content: center;
@@ -1105,7 +1062,7 @@ body::before {
     flex-direction: column;
   }
   
-  .course-card .course-header {
+  .dish-card .dish-header {
     flex-direction: column;
   }
   
@@ -1153,11 +1110,11 @@ body::before {
     background: none;
     color: black;
     box-shadow: none;
-    border-bottom: 2px solid var(--christmas-red);
+    border-bottom: 2px solid var(--primary);
   }
   
   .header h1 {
-    color: var(--christmas-red);
+    color: var(--primary);
     text-shadow: none;
   }
   
@@ -1173,7 +1130,7 @@ body::before {
     display: block;
   }
   
-  .course-card {
+  .dish-card {
     break-inside: avoid;
   }
 }
@@ -1183,7 +1140,7 @@ body::before {
    ═══════════════════════════════════════════════════════════════ */
 
 /* Header della portata con pulsanti */
-.course-header-actions {
+.dish-header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1211,23 +1168,23 @@ body::before {
 }
 
 .regenerate-btn.quick {
-  background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-green-light) 100%);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
   color: white;
 }
 
 .regenerate-btn.quick:hover:not(:disabled) {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(22, 91, 51, 0.4);
+  box-shadow: 0 4px 12px rgba(43, 138, 62, 0.4);
 }
 
 .regenerate-btn.with-feedback {
-  background: linear-gradient(135deg, var(--christmas-gold-dark) 0%, var(--christmas-gold) 100%);
+  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
   color: var(--text-dark);
 }
 
 .regenerate-btn.with-feedback:hover:not(:disabled) {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 12px rgba(209, 142, 0, 0.4);
 }
 
 .regenerate-btn:disabled {
@@ -1247,13 +1204,13 @@ body::before {
 }
 
 /* Card in rigenerazione */
-.course-card.regenerating {
+.dish-card.regenerating {
   opacity: 0.7;
   pointer-events: none;
   position: relative;
 }
 
-.course-card.regenerating::after {
+.dish-card.regenerating::after {
   content: '🔄 Rigenerazione in corso...';
   position: absolute;
   top: 50%;
@@ -1263,13 +1220,13 @@ body::before {
   padding: 15px 25px;
   border-radius: var(--radius-lg);
   font-weight: 600;
-  color: var(--christmas-green);
+  color: var(--secondary);
   box-shadow: var(--shadow-medium);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* Flash verde dopo rigenerazione */
-.course-card.just-regenerated {
+.dish-card.just-regenerated {
   animation: regeneratedFlash 2s ease-out;
 }
 
@@ -1358,12 +1315,12 @@ body::before {
 }
 
 .modal-close:hover {
-  background: var(--christmas-red-light);
+  background: var(--primary-light);
   color: white;
 }
 
 .modal-content h3 {
-  color: var(--christmas-green);
+  color: var(--secondary);
   margin-bottom: 10px;
   font-size: 1.3rem;
 }
@@ -1388,7 +1345,7 @@ body::before {
 
 .feedback-textarea:focus {
   outline: none;
-  border-color: var(--christmas-green);
+  border-color: var(--secondary);
 }
 
 .feedback-textarea::placeholder {
@@ -1421,20 +1378,20 @@ body::before {
 }
 
 .modal-btn.primary {
-  background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-green-light) 100%);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
   color: white;
 }
 
 .modal-btn.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(22, 91, 51, 0.4);
+  box-shadow: 0 4px 12px rgba(43, 138, 62, 0.4);
 }
 
 /* ─── Error Banner (per errori rigenerazione) ─── */
 .error-banner {
   background: rgba(231, 76, 60, 0.1);
-  border: 1px solid var(--christmas-red-light);
-  color: var(--christmas-red);
+  border: 1px solid var(--primary-light);
+  color: var(--primary);
   padding: 15px 20px;
   margin: 20px;
   border-radius: var(--radius-md);
@@ -1447,7 +1404,7 @@ body::before {
 .error-banner button {
   background: none;
   border: none;
-  color: var(--christmas-red);
+  color: var(--primary);
   font-size: 20px;
   cursor: pointer;
   padding: 0 5px;
@@ -1461,7 +1418,7 @@ body::before {
 
 /* ─── Responsive per rigenerazione ─── */
 @media (max-width: 600px) {
-  .course-header-actions {
+  .dish-header-actions {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
@@ -1505,7 +1462,7 @@ body::before {
   max-width: 440px;
   width: 100%;
   text-align: center;
-  border-top: 6px solid var(--christmas-red);
+  border-top: 6px solid var(--primary);
 }
 
 .auth-logo {
@@ -1514,7 +1471,7 @@ body::before {
 }
 
 .auth-card h1 {
-  color: var(--christmas-red);
+  color: var(--primary);
   font-size: 1.6rem;
   margin-bottom: 12px;
 }
@@ -1538,7 +1495,7 @@ body::before {
 }
 
 .auth-error {
-  color: var(--christmas-red);
+  color: var(--primary);
   font-size: 0.9rem;
 }
 
@@ -1547,7 +1504,7 @@ body::before {
   width: 28px;
   height: 28px;
   border: 3px solid var(--border-color);
-  border-top-color: var(--christmas-red);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: auth-spin 0.8s linear infinite;
   margin: 12px auto;
@@ -1576,7 +1533,7 @@ body::before {
 }
 
 .google-signin-btn:hover {
-  border-color: var(--christmas-green);
+  border-color: var(--secondary);
   box-shadow: var(--shadow-soft);
   transform: translateY(-1px);
 }
@@ -1662,5 +1619,132 @@ body::before {
 
 .model-select:focus {
   outline: none;
-  border-color: var(--christmas-green);
+  border-color: var(--secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   🍳 CUCINIAMO - Stili nuovi: pasti, calorie, cucine libere
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Titolo del piatto (role + nome) ─── */
+.dish-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.role-badge {
+  background: rgba(43, 138, 62, 0.12);
+  color: var(--secondary);
+  border: 1px solid rgba(43, 138, 62, 0.35);
+  padding: 3px 10px;
+  border-radius: var(--radius-xl);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* ─── Badge calorie sul piatto ─── */
+.kcal-badge {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+  color: white;
+  padding: 5px 12px;
+  border-radius: var(--radius-xl);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Riepilogo calorie del menù ─── */
+.kcal-summary {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 20px;
+  border-radius: var(--radius-xl);
+  background: rgba(43, 138, 62, 0.1);
+  border: 1px solid rgba(43, 138, 62, 0.3);
+  color: var(--secondary);
+  font-size: 1rem;
+}
+
+.kcal-summary.over {
+  background: rgba(217, 72, 15, 0.1);
+  border-color: rgba(217, 72, 15, 0.35);
+  color: var(--primary-dark);
+}
+
+.kcal-budget {
+  font-weight: 600;
+}
+
+/* ─── Controllo limite calorie nel form ─── */
+.calorie-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.calorie-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calorie-input {
+  width: 110px;
+  padding: 12px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-dark);
+  transition: border-color var(--transition-fast);
+}
+
+.calorie-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 72, 15, 0.1);
+}
+
+.calorie-unit {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ─── Chip preset "Giornata intera" ─── */
+.chip.preset-chip {
+  border-style: dashed;
+  border-color: var(--accent-dark);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.chip.preset-chip:hover {
+  background: rgba(209, 142, 0, 0.08);
+  border-color: var(--accent-dark);
+}
+
+/* ─── Input cucina personalizzata ─── */
+.custom-cuisine-input {
+  max-width: 420px;
+  margin: 15px auto 0;
+}
+
+.custom-cuisine-input input:focus {
+  border-color: var(--secondary);
+}
+
+/* ─── Chip cucina custom (rimovibile) ─── */
+.chip.custom {
+  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
+  border-color: var(--accent-dark);
+  color: white;
 }

@@ -3,20 +3,33 @@ import { signOut, type User } from 'firebase/auth';
 import { firebase } from './firebase';
 import {
   generateMenu,
-  regenerateCourse,
+  regenerateDish,
   computeShoppingList,
+  mealCalories,
+  menuCalories,
   AVAILABLE_MODELS,
   DEFAULT_MODEL,
+  MEAL_LABELS,
 } from './services/aiService';
-import type { UserInput, MenuOutput, DietaryRestriction, DifficultyLevel, BudgetLevel, Ingredient, CourseType } from './types';
+import type {
+  UserInput,
+  MenuOutput,
+  Meal,
+  MealType,
+  Dish,
+  DietaryRestriction,
+  DifficultyLevel,
+  BudgetLevel,
+  Ingredient,
+} from './types';
 import './App.css';
 
-const MODEL_STORAGE_KEY = 'christmas-menu-model';
+const MODEL_STORAGE_KEY = 'cuciniamo-model';
 
-// Stato per la rigenerazione di una portata
+// Stato per la rigenerazione di un piatto
 interface RegeneratingState {
-  courseType: CourseType;
-  courseIndex: number;
+  mealType: MealType;
+  dishIndex: number;
 }
 
 // Modal per feedback opzionale durante la rigenerazione
@@ -24,13 +37,12 @@ const RegenerateModal = ({
   isOpen,
   onClose,
   onConfirm,
-  courseName
+  dishName
 }: {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (feedback: string) => void;
-  courseType: string;
-  courseName: string;
+  dishName: string;
 }) => {
   const [feedback, setFeedback] = useState('');
 
@@ -50,7 +62,7 @@ const RegenerateModal = ({
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={handleClose}>×</button>
-        <h3>🔄 Rigenera "{courseName}"</h3>
+        <h3>🔄 Rigenera "{dishName}"</h3>
         <p className="modal-subtitle">
           Vuoi dare un feedback per la nuova versione? (opzionale)
         </p>
@@ -75,39 +87,39 @@ const RegenerateModal = ({
   );
 };
 
-// Import delle immagini gingerbread
-import onePan from './assets/gingerbread/one_pan.png';
-import twoPan from './assets/gingerbread/two_pan.png';
-import threePan from './assets/gingerbread/three_pan.png';
-import fourPan from './assets/gingerbread/four_pan.png';
-
-// Componente Pan di Zenzero dinamico
-const GingerbreadGuests = ({ count }: { count: number }) => {
-  // Selezione dinamica dell'icona basata sul numero di ospiti
-  const getGingerbreadImage = () => {
-    if (count === 1) return onePan;
-    if (count >= 2 && count <= 3) return twoPan;
-    if (count >= 4 && count <= 5) return threePan;
-    return fourPan; // 6 o più
-  };
-
-  const isCrowded = count >= 6;
-
+// Emoji dinamica in base al numero di persone (niente asset grafici)
+const PeopleEmoji = ({ count }: { count: number }) => {
+  const emoji = count === 1 ? '🧑‍🍳' : count <= 3 ? '👥' : count <= 7 ? '👨‍👩‍👧‍👦' : '🎉';
   return (
-    <div className={`gingerbread-container ${isCrowded ? 'crowded' : ''}`}>
-      <img 
-        src={getGingerbreadImage()} 
-        alt={`${count} ospite${count !== 1 ? 'i' : ''}`}
-        className={`gingerbread-image ${isCrowded ? 'shake' : 'sway'}`}
-      />
+    <div className="people-emoji" aria-hidden="true">
+      {emoji}
     </div>
   );
 };
 
-const CUISINES = [
-  'italiana', 'francese', 'spagnola', 'tedesca', 'inglese',
-  'americana', 'polacca', 'greca', 'scandinava'
+// Cucine popolari proposte come chip; qualsiasi altra si aggiunge
+// dal campo di testo libero
+const SUGGESTED_CUISINES = [
+  'italiana', 'francese', 'spagnola', 'greca', 'mediterranea',
+  'cinese', 'giapponese', 'thailandese', 'vietnamita', 'coreana',
+  'indiana', 'mediorientale', 'turca', 'marocchina',
+  'messicana', 'peruviana', 'brasiliana', 'americana',
+  'tedesca', 'inglese', 'scandinava', 'polacca', 'fusion',
 ];
+
+const MEAL_OPTIONS: { value: MealType; label: string }[] = [
+  { value: 'colazione', label: '🥐 Colazione' },
+  { value: 'pranzo', label: '🍝 Pranzo' },
+  { value: 'cena', label: '🍽️ Cena' },
+  { value: 'spuntino', label: '🍎 Spuntini' },
+];
+
+const MEAL_EMOJI: Record<MealType, string> = {
+  colazione: '🥐',
+  pranzo: '🍝',
+  cena: '🍽️',
+  spuntino: '🍎',
+};
 
 const DIETARY_OPTIONS: { value: DietaryRestriction; label: string }[] = [
   { value: 'vegetariano', label: '🥬 Vegetariano' },
@@ -121,29 +133,34 @@ function App({ user }: { user: User }) {
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState<MenuOutput | null>(null);
   const [activeTab, setActiveTab] = useState<'menu' | 'shopping' | 'timeline'>('menu');
-  
-  // Stati per rigenerazione portate
+
+  // Stati per rigenerazione piatti
   const [regenerating, setRegenerating] = useState<RegeneratingState | null>(null);
   const [regenerateModal, setRegenerateModal] = useState<{
     isOpen: boolean;
-    courseType: CourseType;
-    courseIndex: number;
-    courseName: string;
-  }>({ isOpen: false, courseType: 'antipasti', courseIndex: 0, courseName: '' });
+    mealType: MealType;
+    dishIndex: number;
+    dishName: string;
+  }>({ isOpen: false, mealType: 'pranzo', dishIndex: 0, dishName: '' });
   const [justRegenerated, setJustRegenerated] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<UserInput>({
-    num_guests: 8,
+    num_people: 2,
+    meal_types: ['cena'],
     cuisines: ['italiana'],
     preferred_ingredients: [],
     avoided_ingredients: [],
     dietary_restrictions: [],
     difficulty_level: 'medio',
     budget_level: 'medio',
+    max_calories: null,
   });
 
   const [ingredientInput, setIngredientInput] = useState('');
   const [avoidedInput, setAvoidedInput] = useState('');
+  const [customCuisineInput, setCustomCuisineInput] = useState('');
+  const [caloriesEnabled, setCaloriesEnabled] = useState(false);
+  const [caloriesInput, setCaloriesInput] = useState('1700');
 
   // Modello Gemini selezionato (persistito in localStorage)
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -165,8 +182,14 @@ function App({ user }: { user: User }) {
     setIsLoading(true);
     setError(null);
 
+    const parsedCalories = parseInt(caloriesInput, 10);
+    const input: UserInput = {
+      ...formData,
+      max_calories: caloriesEnabled && parsedCalories > 0 ? parsedCalories : null,
+    };
+
     try {
-      const result = await generateMenu(formData, selectedModel);
+      const result = await generateMenu(input, selectedModel);
       setMenu(result);
       setActiveTab('menu');
     } catch (err) {
@@ -219,6 +242,30 @@ function App({ user }: { user: User }) {
     }));
   };
 
+  const addCustomCuisine = () => {
+    const cuisine = customCuisineInput.trim().toLowerCase();
+    if (cuisine && !formData.cuisines.includes(cuisine)) {
+      setFormData(prev => ({ ...prev, cuisines: [...prev.cuisines, cuisine] }));
+    }
+    setCustomCuisineInput('');
+  };
+
+  // Cucine aggiunte a mano (non presenti tra i suggerimenti)
+  const customCuisines = formData.cuisines.filter(c => !SUGGESTED_CUISINES.includes(c));
+
+  const toggleMeal = (meal: MealType) => {
+    setFormData(prev => ({
+      ...prev,
+      meal_types: prev.meal_types.includes(meal)
+        ? prev.meal_types.filter(m => m !== meal)
+        : [...prev.meal_types, meal]
+    }));
+  };
+
+  const selectFullDay = () => {
+    setFormData(prev => ({ ...prev, meal_types: ['colazione', 'pranzo', 'cena'] }));
+  };
+
   const toggleDietary = (restriction: DietaryRestriction) => {
     setFormData(prev => ({
       ...prev,
@@ -229,13 +276,8 @@ function App({ user }: { user: User }) {
   };
 
   // Apri modal per rigenerazione
-  const openRegenerateModal = (courseType: CourseType, courseIndex: number, courseName: string) => {
-    setRegenerateModal({
-      isOpen: true,
-      courseType,
-      courseIndex,
-      courseName
-    });
+  const openRegenerateModal = (mealType: MealType, dishIndex: number, dishName: string) => {
+    setRegenerateModal({ isOpen: true, mealType, dishIndex, dishName });
   };
 
   // Chiudi modal
@@ -243,39 +285,40 @@ function App({ user }: { user: User }) {
     setRegenerateModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Rigenera una portata (con o senza feedback) e aggiorna la lista spesa
-  const performRegenerate = async (courseType: CourseType, courseIndex: number, feedback: string) => {
+  // Rigenera un piatto (con o senza feedback) e aggiorna la lista spesa
+  const performRegenerate = async (mealType: MealType, dishIndex: number, feedback: string) => {
     if (!menu) return;
-    setRegenerating({ courseType, courseIndex });
+    setRegenerating({ mealType, dishIndex });
     setError(null);
 
     try {
-      const newCourse = await regenerateCourse(menu, courseType, courseIndex, feedback, selectedModel);
+      const newDish = await regenerateDish(menu, mealType, dishIndex, feedback, selectedModel);
 
       setMenu(prev => {
         if (!prev) return prev;
 
-        const updatedCourses = { ...prev.courses };
-        const courseArray = [...updatedCourses[courseType]];
-        courseArray[courseIndex] = newCourse;
-        updatedCourses[courseType] = courseArray;
+        const updatedMeals = prev.meals.map(meal => {
+          if (meal.meal_type !== mealType) return meal;
+          const dishes = [...meal.dishes];
+          dishes[dishIndex] = newDish;
+          return { ...meal, dishes };
+        });
 
         return {
           ...prev,
-          courses: updatedCourses,
+          meals: updatedMeals,
           // Ricalcola la lista spesa dagli ingredienti aggiornati;
-          // la timeline resta quella del menù originale
-          shopping_list: computeShoppingList(updatedCourses),
+          // il piano di preparazione resta quello del menù originale
+          shopping_list: computeShoppingList(updatedMeals),
         };
       });
 
-      // Effetto flash sulla portata rigenerata
-      const courseId = newCourse.course_id || `${courseType}-${courseIndex}`;
-      setJustRegenerated(courseId);
+      // Effetto flash sul piatto rigenerato
+      setJustRegenerated(newDish.dish_id);
       setTimeout(() => setJustRegenerated(null), 2000);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore nella rigenerazione della portata');
+      setError(err instanceof Error ? err.message : 'Errore nella rigenerazione del piatto');
     } finally {
       setRegenerating(null);
     }
@@ -283,14 +326,14 @@ function App({ user }: { user: User }) {
 
   // Rigenerazione con feedback dal modal
   const handleRegenerate = (feedback: string) => {
-    const { courseType, courseIndex } = regenerateModal;
+    const { mealType, dishIndex } = regenerateModal;
     closeRegenerateModal();
-    void performRegenerate(courseType, courseIndex, feedback);
+    void performRegenerate(mealType, dishIndex, feedback);
   };
 
   // Rigenerazione rapida senza modal (click diretto)
-  const handleQuickRegenerate = (courseType: CourseType, courseIndex: number) => {
-    void performRegenerate(courseType, courseIndex, '');
+  const handleQuickRegenerate = (mealType: MealType, dishIndex: number) => {
+    void performRegenerate(mealType, dishIndex, '');
   };
 
   const downloadPDF = () => {
@@ -305,39 +348,128 @@ function App({ user }: { user: User }) {
   };
 
   const generatePrintableHTML = (menuData: MenuOutput): string => {
-    const courseNames: Record<string, string> = {
-      antipasti: '🥗 Antipasti',
-      primo: '🍝 Primo',
-      secondo: '🍖 Secondo',
-      contorno: '🥬 Contorno',
-      dessert: '🍰 Dessert'
-    };
-
-    let coursesHTML = '';
-    for (const [type, courses] of Object.entries(menuData.courses)) {
-      if (!courses || !Array.isArray(courses)) continue;
-      for (const course of courses) {
-        coursesHTML += `
-          <div class="course">
-            <h3>${courseNames[type] || type} - ${course.name}</h3>
-            <p><em>${course.description}</em></p>
-            <p><strong>Origine:</strong> ${course.cuisine}</p>
-            <p><strong>Tempo:</strong> ${course.recipe.prep_time_minutes} min prep + ${course.recipe.cook_time_minutes} min cottura</p>
+    let mealsHTML = '';
+    for (const meal of menuData.meals) {
+      mealsHTML += `<h2>${MEAL_EMOJI[meal.meal_type]} ${MEAL_LABELS[meal.meal_type]} <small>(~${mealCalories(meal)} kcal/persona)</small></h2>`;
+      for (const dish of meal.dishes) {
+        mealsHTML += `
+          <div class="dish">
+            <h3>${dish.role} - ${dish.name}</h3>
+            <p><em>${dish.description}</em></p>
+            <p><strong>Cucina:</strong> ${dish.cuisine} | <strong>Calorie:</strong> ~${dish.nutrition.calories} kcal/porzione (P ${dish.nutrition.protein_g}g · C ${dish.nutrition.carbs_g}g · G ${dish.nutrition.fat_g}g)</p>
+            <p><strong>Tempo:</strong> ${dish.recipe.prep_time_minutes} min prep + ${dish.recipe.cook_time_minutes} min cottura</p>
             <h4>Ingredienti:</h4>
             <ul>
-              ${course.recipe.ingredients.map((i: { quantity: string; name: string }) => `<li>${i.quantity} ${i.name}</li>`).join('')}
+              ${dish.recipe.ingredients.map((i) => `<li>${i.quantity} ${i.name}</li>`).join('')}
             </ul>
             <h4>Procedimento:</h4>
             <ol>
-              ${course.recipe.steps.map((s: string) => `<li>${s}</li>`).join('')}
+              ${dish.recipe.steps.map((s) => `<li>${s}</li>`).join('')}
             </ol>
-            ${course.recipe.chef_notes ? `<p><strong>Note dello Chef:</strong> ${course.recipe.chef_notes}</p>` : ''}
+            ${dish.recipe.chef_notes ? `<p><strong>Note dello Chef:</strong> ${dish.recipe.chef_notes}</p>` : ''}
           </div>
         `;
       }
     }
 
-    return `<!DOCTYPE html><html><head><title>Menu di Natale</title><style>body{font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:20px}h1{text-align:center;color:#c41e3a}h3{color:#c41e3a}.course{margin-bottom:30px;page-break-inside:avoid}</style></head><body><h1>🎄 Menu di Natale 🎄</h1><p style="text-align:center">Per ${menuData.input.num_guests} ospiti</p>${coursesHTML}</body></html>`;
+    const total = menuCalories(menuData.meals);
+    const budget = menuData.input.max_calories
+      ? ` (limite: ${menuData.input.max_calories} kcal)`
+      : '';
+
+    return `<!DOCTYPE html><html><head><title>CucinIAmo - Menù</title><style>body{font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:20px}h1{text-align:center;color:#D35400}h2{color:#D35400;border-bottom:1px solid #ddd;padding-bottom:4px}h3{color:#2B8A3E}.dish{margin-bottom:30px;page-break-inside:avoid}</style></head><body><h1>🍳 CucinIAmo 🍳</h1><p style="text-align:center">Per ${menuData.input.num_people} person${menuData.input.num_people === 1 ? 'a' : 'e'} — Totale: ~${total} kcal/persona${budget}</p>${mealsHTML}</body></html>`;
+  };
+
+  // Riepilogo calorie del menù corrente
+  const renderCaloriesSummary = (menuData: MenuOutput) => {
+    const total = menuCalories(menuData.meals);
+    const budget = menuData.input.max_calories;
+    const overBudget = budget !== null && total > budget;
+
+    return (
+      <div className={`kcal-summary ${overBudget ? 'over' : ''}`}>
+        🔥 Totale: <strong>~{total} kcal</strong> a persona
+        {budget !== null && (
+          <span className="kcal-budget">
+            {overBudget ? ` — oltre il limite di ${budget} kcal!` : ` — entro il limite di ${budget} kcal ✓`}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderDishCard = (meal: Meal, dish: Dish, idx: number) => {
+    const isRegenerating = regenerating?.mealType === meal.meal_type && regenerating?.dishIndex === idx;
+    const wasJustRegenerated = justRegenerated === dish.dish_id;
+
+    return (
+      <div
+        key={dish.dish_id}
+        className={`dish-card ${isRegenerating ? 'regenerating' : ''} ${wasJustRegenerated ? 'just-regenerated' : ''}`}
+      >
+        <div className="dish-header">
+          <div className="dish-title">
+            <span className="role-badge">{dish.role}</span>
+            <h4>{dish.name}</h4>
+          </div>
+          <div className="dish-header-actions">
+            <span className="cuisine-badge">{dish.cuisine}</span>
+            <span className="kcal-badge">🔥 {dish.nutrition.calories} kcal</span>
+            <div className="regenerate-buttons">
+              <button
+                className="regenerate-btn quick"
+                onClick={() => handleQuickRegenerate(meal.meal_type, idx)}
+                disabled={isRegenerating || regenerating !== null}
+                title="Rigenera velocemente"
+              >
+                {isRegenerating ? <span className="spinner-small"></span> : '🔄'}
+              </button>
+              <button
+                className="regenerate-btn with-feedback"
+                onClick={() => openRegenerateModal(meal.meal_type, idx, dish.name)}
+                disabled={isRegenerating || regenerating !== null}
+                title="Rigenera con feedback"
+              >
+                {isRegenerating ? '...' : '💬'}
+              </button>
+            </div>
+          </div>
+        </div>
+        <p className="dish-description">{dish.description}</p>
+        <div className="dish-meta">
+          <span>⏱️ {dish.recipe.prep_time_minutes + dish.recipe.cook_time_minutes} min totali</span>
+          <span>📊 {dish.recipe.difficulty}</span>
+          <span>🥩 P {dish.nutrition.protein_g}g · 🍞 C {dish.nutrition.carbs_g}g · 🧈 G {dish.nutrition.fat_g}g</span>
+          {dish.recipe.can_prep_ahead && <span>✅ Preparabile in anticipo</span>}
+        </div>
+        <details className="recipe-details">
+          <summary>📖 Vedi Ricetta</summary>
+          <div className="recipe-content">
+            <h5>Ingredienti:</h5>
+            <ul>
+              {dish.recipe.ingredients.map((ing: Ingredient, i: number) => (
+                <li key={i}>{ing.quantity} {ing.name}</li>
+              ))}
+            </ul>
+            <h5>Procedimento:</h5>
+            <ol>
+              {dish.recipe.steps.map((step: string, i: number) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ol>
+            {dish.recipe.chef_notes && (
+              <>
+                <h5>💡 Note dello Chef:</h5>
+                <p>{dish.recipe.chef_notes}</p>
+              </>
+            )}
+            {dish.recipe.prep_ahead_timing && (
+              <p><strong>⏰ Preparazione anticipata:</strong> {dish.recipe.prep_ahead_timing}</p>
+            )}
+          </div>
+        </details>
+      </div>
+    );
   };
 
   return (
@@ -350,39 +482,63 @@ function App({ user }: { user: User }) {
             Esci
           </button>
         </div>
-        <h1>🎄 Christmas Menu Generator 🎄</h1>
-        <p>Genera il tuo menù natalizio personalizzato con l'AI</p>
+        <h1>🍳 CucinIAmo 🍳</h1>
+        <p>Menù personalizzati con l'AI, per ogni pasto e con le calorie sotto controllo</p>
       </header>
 
       <main className="main-content">
         {!menu ? (
           <form onSubmit={handleSubmit} className="input-form">
-            <div className="form-section guests-section">
-              <h2>🍪 Quanti siete a tavola?</h2>
-              <GingerbreadGuests count={formData.num_guests} />
-              <div className="guest-counter">
-                <button 
-                  type="button" 
+            <div className="form-section people-section">
+              <h2>👥 Per quante persone?</h2>
+              <PeopleEmoji count={formData.num_people} />
+              <div className="people-counter">
+                <button
+                  type="button"
                   className="bounce-btn"
-                  onClick={() => setFormData(prev => ({ ...prev, num_guests: Math.max(1, prev.num_guests - 1) }))}
+                  onClick={() => setFormData(prev => ({ ...prev, num_people: Math.max(1, prev.num_people - 1) }))}
                 >−</button>
-                <div className="guest-number-wrapper">
-                  <span className="guest-number">{formData.num_guests}</span>
-                  <span className="guest-label">ospiti</span>
+                <div className="people-number-wrapper">
+                  <span className="people-number">{formData.num_people}</span>
+                  <span className="people-label">person{formData.num_people === 1 ? 'a' : 'e'}</span>
                 </div>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="bounce-btn"
-                  onClick={() => setFormData(prev => ({ ...prev, num_guests: Math.min(50, prev.num_guests + 1) }))}
+                  onClick={() => setFormData(prev => ({ ...prev, num_people: Math.min(50, prev.num_people + 1) }))}
                 >+</button>
               </div>
             </div>
 
             <div className="form-section">
-              <h2>🌍 Che sapori volete portare in tavola?</h2>
-              <p className="section-hint">Seleziona una o più tradizioni culinarie</p>
+              <h2>🍽️ Quali pasti vuoi creare?</h2>
+              <p className="section-hint">Seleziona uno o più pasti, oppure l'intera giornata</p>
               <div className="chip-container centered">
-                {CUISINES.map(cuisine => (
+                {MEAL_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`chip bounce-btn ${formData.meal_types.includes(option.value) ? 'selected' : ''}`}
+                    onClick={() => toggleMeal(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="chip bounce-btn preset-chip"
+                  onClick={selectFullDay}
+                >
+                  ☀️ Giornata intera
+                </button>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h2>🌍 Da quali cucine vuoi farti ispirare?</h2>
+              <p className="section-hint">Scegli tra le proposte o aggiungine di tue (es. "pugliese", "etiope", "fusion nikkei")</p>
+              <div className="chip-container centered">
+                {SUGGESTED_CUISINES.map(cuisine => (
                   <button
                     key={cuisine}
                     type="button"
@@ -392,20 +548,41 @@ function App({ user }: { user: User }) {
                     {cuisine.charAt(0).toUpperCase() + cuisine.slice(1)}
                   </button>
                 ))}
+                {customCuisines.map(cuisine => (
+                  <button
+                    key={cuisine}
+                    type="button"
+                    className="chip bounce-btn selected custom"
+                    onClick={() => toggleCuisine(cuisine)}
+                    title="Rimuovi"
+                  >
+                    {cuisine.charAt(0).toUpperCase() + cuisine.slice(1)} ×
+                  </button>
+                ))}
+              </div>
+              <div className="ingredient-input custom-cuisine-input">
+                <input
+                  type="text"
+                  value={customCuisineInput}
+                  onChange={(e) => setCustomCuisineInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomCuisine())}
+                  placeholder="Aggiungi un'altra cucina..."
+                />
+                <button type="button" className="bounce-btn" onClick={addCustomCuisine}>+</button>
               </div>
             </div>
 
             <div className="form-section ingredients-dual">
               <div className="ingredient-column prefer">
-                <h2>💚 Cosa vi piace?</h2>
-                <p className="section-hint">Ingredienti che amate</p>
+                <h2>💚 Cosa ti piace?</h2>
+                <p className="section-hint">Ingredienti che ami</p>
                 <div className="ingredient-input">
                   <input
                     type="text"
                     value={ingredientInput}
                     onChange={(e) => setIngredientInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())}
-                    placeholder="Es: salmone, tartufo..."
+                    placeholder="Es: salmone, avocado..."
                   />
                   <button type="button" className="bounce-btn" onClick={addIngredient}>+</button>
                 </div>
@@ -457,9 +634,37 @@ function App({ user }: { user: User }) {
               </div>
             </div>
 
+            <div className="form-section">
+              <h2>🔥 Vuoi un limite di calorie?</h2>
+              <p className="section-hint">Opzionale: kcal massime a persona sull'insieme dei pasti scelti (es. 1700 per la giornata, 400 per una colazione)</p>
+              <div className="calorie-control">
+                <button
+                  type="button"
+                  className={`chip bounce-btn ${caloriesEnabled ? 'selected' : ''}`}
+                  onClick={() => setCaloriesEnabled(prev => !prev)}
+                >
+                  {caloriesEnabled ? '🔥 Limite attivo' : 'Imposta un limite'}
+                </button>
+                {caloriesEnabled && (
+                  <div className="calorie-input-wrapper">
+                    <input
+                      type="number"
+                      className="calorie-input"
+                      value={caloriesInput}
+                      onChange={(e) => setCaloriesInput(e.target.value)}
+                      min={100}
+                      max={8000}
+                      step={50}
+                    />
+                    <span className="calorie-unit">kcal / persona</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="form-section options-dual">
               <div className="option-column">
-                <h2>👨‍🍳 Quanto volete impegnarvi?</h2>
+                <h2>👨‍🍳 Quanto vuoi impegnarti?</h2>
                 <div className="radio-group vertical">
                   {(['facile', 'medio', 'avanzato'] as DifficultyLevel[]).map(level => (
                     <label key={level} className={`bounce-btn ${formData.difficulty_level === level ? 'selected' : ''}`}>
@@ -470,13 +675,13 @@ function App({ user }: { user: User }) {
                         checked={formData.difficulty_level === level}
                         onChange={(e) => setFormData(prev => ({ ...prev, difficulty_level: e.target.value as DifficultyLevel }))}
                       />
-                      {level === 'facile' ? '😊 Relax, voglio godermi la festa' : level === 'medio' ? '👨‍🍳 Mi piace cucinare' : '🔥 Sfidami, chef!'}
+                      {level === 'facile' ? '😊 Relax, poco tempo' : level === 'medio' ? '👨‍🍳 Mi piace cucinare' : '🔥 Sfidami, chef!'}
                     </label>
                   ))}
                 </div>
               </div>
               <div className="option-column">
-                <h2>💰 Quanto volete spendere?</h2>
+                <h2>💰 Quanto vuoi spendere?</h2>
                 <div className="radio-group vertical">
                   {(['economico', 'medio', 'premium'] as BudgetLevel[]).map(level => (
                     <label key={level} className={`bounce-btn ${formData.budget_level === level ? 'selected' : ''}`}>
@@ -487,7 +692,7 @@ function App({ user }: { user: User }) {
                         checked={formData.budget_level === level}
                         onChange={(e) => setFormData(prev => ({ ...prev, budget_level: e.target.value as BudgetLevel }))}
                       />
-                      {level === 'economico' ? '🪙 Budget friendly' : level === 'medio' ? '💵 Il giusto' : '💎 Si festeggia!'}
+                      {level === 'economico' ? '🪙 Budget friendly' : level === 'medio' ? '💵 Il giusto' : '💎 Niente limiti!'}
                     </label>
                   ))}
                 </div>
@@ -495,7 +700,7 @@ function App({ user }: { user: User }) {
             </div>
 
             <div className="form-section">
-              <h2>🤖 Quale AI cucinerà per voi?</h2>
+              <h2>🤖 Quale AI cucinerà per te?</h2>
               <p className="section-hint">Scegli il modello Gemini che genererà il menù</p>
               <div className="model-select-wrapper">
                 <select
@@ -527,17 +732,21 @@ function App({ user }: { user: User }) {
               </div>
             )}
 
-            <button type="submit" className="submit-button bounce-btn" disabled={isLoading || formData.cuisines.length === 0}>
+            <button
+              type="submit"
+              className="submit-button bounce-btn"
+              disabled={isLoading || formData.cuisines.length === 0 || formData.meal_types.length === 0}
+            >
               {isLoading ? (
                 <>
                   <span className="spinner"></span>
-                  <span>Sto creando la magia... 🎅</span>
+                  <span>Lo chef è al lavoro... 👨‍🍳</span>
                 </>
               ) : (
                 <>
-                  <span className="btn-icon">🎄</span>
-                  <span>Crea il nostro Menù!</span>
-                  <span className="btn-icon">🎄</span>
+                  <span className="btn-icon">🍳</span>
+                  <span>Crea il Menù!</span>
+                  <span className="btn-icon">🍳</span>
                 </>
               )}
             </button>
@@ -545,8 +754,12 @@ function App({ user }: { user: User }) {
         ) : (
           <div className="menu-result">
             <div className="menu-header">
-              <h2>🎄 Il Tuo Menù di Natale 🎄</h2>
-              <p>Per {menu.input.num_guests} ospiti</p>
+              <h2>🍳 Il Tuo Menù 🍳</h2>
+              <p>
+                Per {menu.input.num_people} person{menu.input.num_people === 1 ? 'a' : 'e'} —{' '}
+                {menu.meals.map(m => MEAL_LABELS[m.meal_type]).join(', ')}
+              </p>
+              {renderCaloriesSummary(menu)}
               <div className="menu-actions">
                 <button onClick={() => setMenu(null)} className="action-button">← Nuovo Menù</button>
                 <button onClick={downloadPDF} className="action-button primary">📄 Stampa PDF</button>
@@ -556,92 +769,19 @@ function App({ user }: { user: User }) {
             <div className="tabs">
               <button className={activeTab === 'menu' ? 'active' : ''} onClick={() => setActiveTab('menu')}>📋 Menù</button>
               <button className={activeTab === 'shopping' ? 'active' : ''} onClick={() => setActiveTab('shopping')}>🛒 Lista Spesa</button>
-              <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>⏰ Timeline</button>
+              <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>⏰ Preparazione</button>
             </div>
 
             {activeTab === 'menu' && (
-              <div className="courses-container">
-                {Object.entries(menu.courses).map(([type, courses]) => (
-                  courses && Array.isArray(courses) && courses.length > 0 && (
-                    <div key={type} className="course-section">
-                      <h3 className="course-type">
-                        {type === 'antipasti' && '🥗 Antipasti'}
-                        {type === 'primo' && '🍝 Primo'}
-                        {type === 'secondo' && '🍖 Secondo'}
-                        {type === 'contorno' && '🥬 Contorno'}
-                        {type === 'dessert' && '🍰 Dessert'}
-                      </h3>
-                      {courses.map((course, idx) => {
-                        const courseId = course.course_id || `${type}-${idx}`;
-                        const isRegenerating = regenerating?.courseType === type && regenerating?.courseIndex === idx;
-                        const wasJustRegenerated = justRegenerated === courseId;
-                        
-                        return (
-                        <div 
-                          key={courseId} 
-                          className={`course-card ${isRegenerating ? 'regenerating' : ''} ${wasJustRegenerated ? 'just-regenerated' : ''}`}
-                        >
-                          <div className="course-header">
-                            <h4>{course.name}</h4>
-                            <div className="course-header-actions">
-                              <span className="cuisine-badge">{course.cuisine}</span>
-                              <div className="regenerate-buttons">
-                                <button
-                                  className="regenerate-btn quick"
-                                  onClick={() => handleQuickRegenerate(type as CourseType, idx)}
-                                  disabled={isRegenerating || regenerating !== null}
-                                  title="Rigenera velocemente"
-                                >
-                                  {isRegenerating ? <span className="spinner-small"></span> : '🔄'}
-                                </button>
-                                <button
-                                  className="regenerate-btn with-feedback"
-                                  onClick={() => openRegenerateModal(type as CourseType, idx, course.name)}
-                                  disabled={isRegenerating || regenerating !== null}
-                                  title="Rigenera con feedback"
-                                >
-                                  {isRegenerating ? '...' : '💬'}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="course-description">{course.description}</p>
-                          <div className="course-meta">
-                            <span>⏱️ {course.recipe.prep_time_minutes + course.recipe.cook_time_minutes} min totali</span>
-                            <span>📊 {course.recipe.difficulty}</span>
-                            {course.recipe.can_prep_ahead && <span>✅ Preparabile in anticipo</span>}
-                          </div>
-                          <details className="recipe-details">
-                            <summary>📖 Vedi Ricetta</summary>
-                            <div className="recipe-content">
-                              <h5>Ingredienti:</h5>
-                              <ul>
-                                {course.recipe.ingredients.map((ing: Ingredient, i: number) => (
-                                  <li key={i}>{ing.quantity} {ing.name}</li>
-                                ))}
-                              </ul>
-                              <h5>Procedimento:</h5>
-                              <ol>
-                                {course.recipe.steps.map((step: string, i: number) => (
-                                  <li key={i}>{step}</li>
-                                ))}
-                              </ol>
-                              {course.recipe.chef_notes && (
-                                <>
-                                  <h5>💡 Note dello Chef:</h5>
-                                  <p>{course.recipe.chef_notes}</p>
-                                </>
-                              )}
-                              {course.recipe.prep_ahead_timing && (
-                                <p><strong>⏰ Preparazione anticipata:</strong> {course.recipe.prep_ahead_timing}</p>
-                              )}
-                            </div>
-                          </details>
-                        </div>
-                        );
-                      })}
+              <div className="meals-container">
+                {menu.meals.map(meal => (
+                  <div key={meal.meal_type} className="meal-section">
+                    <div className="meal-title">
+                      <h3>{MEAL_EMOJI[meal.meal_type]} {MEAL_LABELS[meal.meal_type]}</h3>
+                      <span className="meal-kcal">~{mealCalories(meal)} kcal/persona</span>
                     </div>
-                  )
+                    {meal.dishes.map((dish, idx) => renderDishCard(meal, dish, idx))}
+                  </div>
                 ))}
               </div>
             )}
@@ -649,7 +789,7 @@ function App({ user }: { user: User }) {
             {activeTab === 'shopping' && (
               <div className="shopping-container">
                 <h3>🛒 Lista della Spesa</h3>
-                {menu.shopping_list && menu.shopping_list.categories && 
+                {menu.shopping_list && menu.shopping_list.categories &&
                   Object.entries(menu.shopping_list.categories).map(([category, items]) => (
                     items && Array.isArray(items) && items.length > 0 && (
                       <div key={category} className="shopping-category">
@@ -668,24 +808,14 @@ function App({ user }: { user: User }) {
 
             {activeTab === 'timeline' && (
               <div className="timeline-container">
-                <h3>⏰ Timeline di Preparazione</h3>
+                <h3>⏰ Piano di Preparazione</h3>
                 {menu.timeline && (
                   <>
-                    {menu.timeline.two_days_before && menu.timeline.two_days_before.length > 0 && (
+                    {menu.timeline.in_advance && menu.timeline.in_advance.length > 0 && (
                       <div className="timeline-section">
-                        <h4>📅 Due giorni prima</h4>
+                        <h4>📅 In anticipo</h4>
                         <ul>
-                          {menu.timeline.two_days_before.map((task, i) => (
-                            <li key={i}>{task}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {menu.timeline.one_day_before && menu.timeline.one_day_before.length > 0 && (
-                      <div className="timeline-section">
-                        <h4>📅 Un giorno prima</h4>
-                        <ul>
-                          {menu.timeline.one_day_before.map((task, i) => (
+                          {menu.timeline.in_advance.map((task, i) => (
                             <li key={i}>{task}</li>
                           ))}
                         </ul>
@@ -693,7 +823,7 @@ function App({ user }: { user: User }) {
                     )}
                     {menu.timeline.day_of && Object.keys(menu.timeline.day_of).length > 0 && (
                       <div className="timeline-section">
-                        <h4>🎄 Il giorno di Natale</h4>
+                        <h4>🍳 Il giorno stesso</h4>
                         <div className="day-schedule">
                           {Object.entries(menu.timeline.day_of)
                             .sort(([a], [b]) => a.localeCompare(b))
@@ -728,8 +858,7 @@ function App({ user }: { user: User }) {
         isOpen={regenerateModal.isOpen}
         onClose={closeRegenerateModal}
         onConfirm={handleRegenerate}
-        courseType={regenerateModal.courseType}
-        courseName={regenerateModal.courseName}
+        dishName={regenerateModal.dishName}
       />
 
       <footer className="footer">

@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // ═══════════════════════════════════════════════════════════════
-// 🔐 SECURITY RULES - Christmas Menu Generator
+// 🔐 SECURITY RULES - CucinIAmo
 //
 // Unica collection: "allowlist"
 // - Ogni documento ha come ID un'email in minuscolo

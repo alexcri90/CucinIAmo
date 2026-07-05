@@ -95,7 +95,7 @@ const AuthGate = ({ children }: AuthGateProps) => {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-logo">🎄⚙️</div>
+          <div className="auth-logo">🍳⚙️</div>
           <h1>Configurazione mancante</h1>
           <p>
             Il file <code>frontend/.env</code> con la configurazione Firebase non è presente.
@@ -115,7 +115,7 @@ const AuthGate = ({ children }: AuthGateProps) => {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-logo">🎄</div>
+          <div className="auth-logo">🍳</div>
           <span className="spinner auth-spinner"></span>
           <p>{status === 'checking' ? 'Verifica autorizzazione…' : 'Caricamento…'}</p>
         </div>
@@ -128,9 +128,9 @@ const AuthGate = ({ children }: AuthGateProps) => {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-logo">🎄</div>
-          <h1>Christmas Menu Generator</h1>
-          <p>Genera il tuo menù natalizio personalizzato con l'AI</p>
+          <div className="auth-logo">🍳</div>
+          <h1>CucinIAmo</h1>
+          <p>Menù personalizzati con l'AI, per ogni pasto e con le calorie sotto controllo</p>
           <button className="google-signin-btn" onClick={handleSignIn}>
             <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -152,11 +152,11 @@ const AuthGate = ({ children }: AuthGateProps) => {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-logo">🎅🚫</div>
+          <div className="auth-logo">👨‍🍳🚫</div>
           <h1>Accesso non autorizzato</h1>
           <p>
-            L'account <strong>{user?.email ?? 'sconosciuto'}</strong> non è nella lista degli
-            invitati.
+            L'account <strong>{user?.email ?? 'sconosciuto'}</strong> non è tra gli utenti
+            autorizzati.
           </p>
           <p className="auth-hint">
             Chiedi al proprietario del progetto di aggiungere la tua email alla lista degli
