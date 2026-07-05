@@ -1,0 +1,62 @@
+# =============================================================================
+# Render.com Blueprint - Christmas Menu Generator
+# =============================================================================
+# Documentazione: https://render.com/docs/blueprint-spec
+#
+# ISTRUZIONI:
+# 1. Fai push di questo file su GitHub
+# 2. Vai su https://render.com e crea un account (gratis)
+# 3. Clicca "New" → "Blueprint" → Connetti il tuo repo GitHub
+# 4. Render leggerà questo file e creerà i servizi automaticamente
+# 5. Aggiungi GOOGLE_API_KEY nelle Environment Variables del backend
+# 6. Dopo il deploy, aggiungi VITE_API_URL al frontend manualmente
+# =============================================================================
+
+services:
+  # =========================================================================
+  # BACKEND - FastAPI (Python) - Web Service Docker
+  # =========================================================================
+  - type: web
+    name: christmas-menu-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: frankfurt
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3-flash-preview
+      - key: DATAPIZZA_AGENT_LOG_LEVEL
+        value: INFO
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+
+  # =========================================================================
+  # FRONTEND - React Static Site
+  # Static sites DEVONO stare in "services" con type: web e runtime: static
+  # =========================================================================
+  - type: web
+    name: christmas-menu-app
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    envVars:
+      - key: VITE_API_URL
+        sync: false
