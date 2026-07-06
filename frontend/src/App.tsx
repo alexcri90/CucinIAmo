@@ -11,7 +11,9 @@ import {
   DEFAULT_MODEL,
   MEAL_LABELS,
 } from './services/aiService';
-import { saveRecipe, listRecipes, deleteRecipe } from './services/recipeService';
+import { saveRecipe, listRecipes, updateRecipe, deleteRecipe } from './services/recipeService';
+import RecipeDetails from './components/RecipeDetails';
+import Ricettario, { type RecipePatch } from './components/Ricettario';
 import type {
   UserInput,
   MenuOutput,
@@ -21,7 +23,6 @@ import type {
   DietaryRestriction,
   DifficultyLevel,
   BudgetLevel,
-  Ingredient,
   SavedRecipe,
 } from './types';
 import './App.css';
@@ -234,6 +235,15 @@ function App({ user }: { user: User }) {
     } catch (err) {
       setRicettarioError(err instanceof Error ? err.message : "Errore nell'eliminazione della ricetta");
     }
+  };
+
+  // Aggiorna una ricetta (rating, note, editing) su Firestore e nello stato
+  const handleUpdateRecipe = async (recipeId: string, patch: RecipePatch) => {
+    await updateRecipe(user.uid, recipeId, patch);
+    const updated_at = new Date().toISOString();
+    setSavedRecipes((prev) =>
+      prev ? prev.map((r) => (r.recipe_id === recipeId ? { ...r, ...patch, updated_at } : r)) : prev
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -457,36 +467,6 @@ function App({ user }: { user: User }) {
     );
   };
 
-  // Dettaglio ricetta espandibile (usato sia nel menù sia nel ricettario)
-  const renderRecipeDetails = (dish: Dish) => (
-    <details className="recipe-details">
-      <summary>📖 Vedi Ricetta</summary>
-      <div className="recipe-content">
-        <h5>Ingredienti:</h5>
-        <ul>
-          {dish.recipe.ingredients.map((ing: Ingredient, i: number) => (
-            <li key={i}>{ing.quantity} {ing.name}</li>
-          ))}
-        </ul>
-        <h5>Procedimento:</h5>
-        <ol>
-          {dish.recipe.steps.map((step: string, i: number) => (
-            <li key={i}>{step}</li>
-          ))}
-        </ol>
-        {dish.recipe.chef_notes && (
-          <>
-            <h5>💡 Note dello Chef:</h5>
-            <p>{dish.recipe.chef_notes}</p>
-          </>
-        )}
-        {dish.recipe.prep_ahead_timing && (
-          <p><strong>⏰ Preparazione anticipata:</strong> {dish.recipe.prep_ahead_timing}</p>
-        )}
-      </div>
-    </details>
-  );
-
   const renderDishCard = (meal: Meal, dish: Dish, idx: number) => {
     const isRegenerating = regenerating?.mealType === meal.meal_type && regenerating?.dishIndex === idx;
     const wasJustRegenerated = justRegenerated === dish.dish_id;
@@ -541,86 +521,10 @@ function App({ user }: { user: User }) {
           <span>🥩 P {dish.nutrition.protein_g}g · 🍞 C {dish.nutrition.carbs_g}g · 🧈 G {dish.nutrition.fat_g}g</span>
           {dish.recipe.can_prep_ahead && <span className="prep-ahead">✅ Preparabile in anticipo</span>}
         </div>
-        {renderRecipeDetails(dish)}
+        <RecipeDetails dish={dish} />
       </div>
     );
   };
-
-  // ── Vista Ricettario (Fase 1: elenco base; filtri/rating/editing in Fase 2) ──
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  const renderRicettario = () => (
-    <div className="ricettario">
-      <div className="menu-header">
-        <h2>📖 Il tuo ricettario</h2>
-        <p>Le ricette che hai salvato dai menù generati</p>
-      </div>
-
-      {ricettarioError && (
-        <div className="error-banner">
-          ❌ {ricettarioError}
-          <button onClick={() => setRicettarioError(null)}>×</button>
-        </div>
-      )}
-
-      {ricettarioLoading && (
-        <div className="ricettario-status">
-          <span className="spinner"></span>
-          <p>Caricamento del ricettario…</p>
-        </div>
-      )}
-
-      {!ricettarioLoading && savedRecipes !== null && savedRecipes.length === 0 && (
-        <div className="ricettario-empty">
-          <p className="ricettario-empty-emoji">🍳</p>
-          <h3>Il tuo ricettario è vuoto</h3>
-          <p>Genera un menù e salva i piatti che ti piacciono col bottone 💾: li ritroverai qui.</p>
-          <button className="action-button primary" onClick={() => setView('genera')}>
-            ✨ Genera un menù
-          </button>
-        </div>
-      )}
-
-      <div className="meals-container">
-        {savedRecipes?.map((recipe) => (
-          <div key={recipe.recipe_id} className="dish-card saved-recipe-card">
-            <div className="dish-header">
-              <div className="dish-title">
-                <span className="role-badge">{recipe.dish.role}</span>
-                <h4>{recipe.dish.name}</h4>
-              </div>
-              <div className="dish-header-actions">
-                <span className="cuisine-badge">{recipe.dish.cuisine}</span>
-                <span className="kcal-badge">🔥 {recipe.dish.nutrition.calories} kcal</span>
-                <button
-                  className="regenerate-btn delete"
-                  onClick={() => void handleDeleteRecipe(recipe)}
-                  title="Elimina dal ricettario"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-            <p className="dish-description">{recipe.dish.description}</p>
-            <div className="dish-meta">
-              <span className="recipe-rating" title={recipe.rating ? `${recipe.rating} stelle su 5` : 'Non ancora valutata'}>
-                {recipe.rating
-                  ? '★'.repeat(recipe.rating) + '☆'.repeat(5 - recipe.rating)
-                  : '☆☆☆☆☆ non valutata'}
-              </span>
-              {recipe.source && (
-                <span>{MEAL_EMOJI[recipe.source.meal_type]} {MEAL_LABELS[recipe.source.meal_type]}</span>
-              )}
-              <span>💾 {formatDate(recipe.saved_at)}</span>
-              {recipe.is_customized && <span className="prep-ahead">✏️ Modificata</span>}
-            </div>
-            {renderRecipeDetails(recipe.dish)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <div className="app">
@@ -657,7 +561,15 @@ function App({ user }: { user: User }) {
 
       <main className="main-content">
         {view === 'ricettario' ? (
-          renderRicettario()
+          <Ricettario
+            recipes={savedRecipes}
+            loading={ricettarioLoading}
+            loadError={ricettarioError}
+            onDismissLoadError={() => setRicettarioError(null)}
+            onGoGenerate={() => setView('genera')}
+            onUpdate={handleUpdateRecipe}
+            onDelete={handleDeleteRecipe}
+          />
         ) : !menu ? (
           <form onSubmit={handleSubmit} className="input-form">
             <div className="form-section people-section">

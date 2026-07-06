@@ -1708,6 +1708,242 @@
   background: #fdecec;
 }
 
+/* ─── Toolbar: ricerca, filtri, ordinamento ─── */
+.ricettario-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.ricettario-search {
+  flex: 1 1 200px;
+  padding: 10px 14px;
+  font: 500 14px var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-input);
+  transition: var(--transition);
+}
+
+.ricettario-search:focus {
+  outline: none;
+  border-color: var(--brand-magenta);
+}
+
+.ricettario-toolbar select {
+  padding: 10px 12px;
+  font: 500 13px var(--font-ui);
+  color: var(--body);
+  background: var(--surface);
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ricettario-toolbar select:hover {
+  border-color: var(--brand-magenta);
+}
+
+/* ─── Stelle ─── */
+.star-rating {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.star-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 19px;
+  line-height: 1;
+  padding: 0 1px;
+  color: var(--faint);
+  transition: var(--transition);
+}
+
+.star-btn.filled {
+  color: var(--brand-arancio);
+}
+
+.star-btn:hover:not(:disabled) {
+  transform: scale(1.2);
+  color: var(--brand-arancio);
+}
+
+.cooked-stars {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 14px;
+}
+
+.cooked-stars .star-btn {
+  font-size: 30px;
+}
+
+/* ─── Azioni card ricetta ─── */
+.recipe-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 4px;
+}
+
+.recipe-actions .action-button {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.recipe-meta-row {
+  align-items: center;
+}
+
+/* ─── Note datate ─── */
+.recipe-notes-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--body);
+  font-size: 14px;
+}
+
+.recipe-note-date {
+  color: var(--slate);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+/* ─── Modal editing ricetta ─── */
+.modal-content.large {
+  max-width: 640px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 4px;
+  text-align: left;
+}
+
+.edit-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 600 13px var(--font-ui);
+  color: var(--slate);
+}
+
+.edit-form input[type="text"],
+.edit-form input[type="number"],
+.edit-form textarea {
+  padding: 9px 12px;
+  font: 500 14px var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--border-input);
+  border-radius: 10px;
+  transition: var(--transition);
+  resize: vertical;
+}
+
+.edit-form input:focus,
+.edit-form textarea:focus {
+  outline: none;
+  border-color: var(--brand-magenta);
+}
+
+.edit-section-title {
+  font: 600 14px var(--font-ui);
+  color: var(--ink);
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider);
+}
+
+.edit-ingredient-row,
+.edit-step-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.edit-qty {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.edit-name {
+  flex: 1;
+}
+
+.edit-step-row textarea {
+  flex: 1;
+}
+
+.edit-step-num {
+  font: 600 14px var(--font-ui);
+  color: var(--slate);
+  padding-top: 10px;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.edit-remove-btn {
+  width: 32px;
+  height: 38px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--slate);
+  font-size: 17px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.edit-remove-btn:hover {
+  background: #fdecec;
+  color: var(--danger);
+}
+
+.edit-add-btn {
+  align-self: flex-start;
+  border: 1.5px dashed var(--border-input);
+  background: none;
+  border-radius: 10px;
+  padding: 7px 14px;
+  font: 600 13px var(--font-ui);
+  color: var(--slate);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.edit-add-btn:hover {
+  color: var(--brand-ink);
+  border-color: var(--brand-magenta);
+}
+
+.edit-nutrition-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.edit-nutrition-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 600 12px var(--font-ui);
+  color: var(--slate);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    STAMPA
    ═══════════════════════════════════════════════════════════════ */

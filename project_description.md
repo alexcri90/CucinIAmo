@@ -25,6 +25,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.3.0** | **Fase 2 Roadmap v2 — Ricettario completo**: componenti `Ricettario.tsx` + `RecipeDetails.tsx`, ricerca/filtri/ordinamento, stelle 1-5 cliccabili, flusso "✅ L'ho cucinata!" (cooked_count + rating + nota), editing della copia personale (dosi, ingredienti, passaggi, note chef, nutrizione) con badge "Modificata", note datate |
 | **1.2.0** | **Fase 1 Roadmap v2 — Fondamenta ricettario**: security rules `users/{uid}/**` con controllo allowlist (`isAllowed()`), nuovi tipi `SavedRecipe`/`RecipeNote`, `services/recipeService.ts` (CRUD Firestore), navigazione a tab 🍳 Genera / 📖 Ricettario, bottone 💾 su ogni piatto del menù, vista elenco base del ricettario (con eliminazione) |
 | **1.1.0** | **Applicazione del design system CucinIAmo**: gradiente brand viola→magenta→corallo→arancio, font Space Grotesk (titoli) + Instrument Sans (UI), neutri caldi, chip/card/tab ridisegnati, nuovo logo (pomodoro, `frontend/public/logo.png`, anche favicon), login e header rinnovati. Fonte del design: cartella `CucinIAmo design system/` (mock HTML interattivo) |
 | **1.0.0** | **Trasformazione in CucinIAmo**: rimozione backend Python/Datapizza e test (era una demo locale non usata in produzione), nuovo modello dati (Meal/Dish/NutritionInfo), nuovi prompt con budget calorico, form rinnovato (pasti, cucine ibride, limite kcal), nuova palette non natalizia, docs riscritte |
@@ -108,7 +109,9 @@ c:\Users\alexc\Local Github\P4B\CucinIAmo\
         ├── firebase.ts           # Init Firebase (Auth, Firestore, AI Logic, App Check opz.)
         │
         ├── components\
-        │   └── AuthGate.tsx      # Login Google + verifica allowlist
+        │   ├── AuthGate.tsx      # Login Google + verifica allowlist
+        │   ├── RecipeDetails.tsx # Dettaglio ricetta espandibile (menù + ricettario)
+        │   └── Ricettario.tsx    # Vista ricettario: filtri, stelle, editing, note
         │
         ├── services\
         │   ├── aiService.ts      # Prompt, chiamate Gemini, parsing/normalizzazione, helper kcal
@@ -342,16 +345,16 @@ L'infrastruttura su cui poggia tutto il resto. Codice completato il 6 Luglio 202
 
 **Criterio di completamento:** genero un menù, salvo un piatto, ricarico la pagina da un altro browser e lo ritrovo. ✅ Verificato.
 
-### 📖 Fase 2 — Ricettario completo (v1.3.0)
+### 📖 Fase 2 — Ricettario completo (v1.3.0) ✅ IMPLEMENTATA
 
-La feature vera e propria, sopra le fondamenta della Fase 1.
+La feature vera e propria, sopra le fondamenta della Fase 1. Il ricettario è ora un componente dedicato (`components/Ricettario.tsx`), con `RecipeDetails.tsx` condiviso col menù generato.
 
-- [ ] Vista elenco: card ricetta (nome, cucina, kcal, stelle, badge "modificata"), ricerca per nome, filtri per tipo pasto/cucina/valutazione, ordinamento (data, rating, kcal)
-- [ ] Vista dettaglio: ricetta completa (ingredienti, passaggi, macro) riusando i componenti di visualizzazione del menù
-- [ ] Flusso "✅ L'ho cucinata!": incrementa `cooked_count`, chiede la valutazione a stelle (1-5) e una nota opzionale sulla preparazione
-- [ ] Valutazione modificabile in ogni momento dal dettaglio
-- [ ] **Editing della ricetta**: modifica di dosi/quantità, aggiunta/rimozione ingredienti, modifica dei passaggi, note dello chef personali → setta `is_customized: true` e aggiorna `updated_at`
-- [ ] Note/commenti multipli con data (diario delle preparazioni della singola ricetta)
+- [x] Vista elenco: card ricetta (nome, cucina, kcal, stelle, badge "modificata", contatore 👨‍🍳), ricerca per nome, filtri (pasto, cucina, valutazione/stato), ordinamento (recenti, rating, kcal)
+- [x] Vista dettaglio: ricetta completa espandibile riusando `RecipeDetails`
+- [x] Flusso "✅ L'ho cucinata!": incrementa `cooked_count`, chiede stelle (1-5, opzionali) e nota opzionale sulla preparazione
+- [x] Valutazione modificabile in ogni momento (stelle cliccabili sulla card)
+- [x] **Editing della ricetta**: nome, descrizione, dosi/quantità, aggiunta/rimozione ingredienti, passaggi, note dello chef, valori nutrizionali → `is_customized: true` + `updated_at`
+- [x] Note/commenti multipli con data (aggiungibili sia dal flusso "cucinata" sia col bottone 📝)
 - [x] Eliminazione ricetta (con conferma) — anticipata in v1.2.0
 
 **Criterio di completamento:** salvo una ricetta, la modifico (dosi + un ingrediente), la segno come cucinata con 4 stelle e un commento, e ritrovo tutto dopo il logout/login.
