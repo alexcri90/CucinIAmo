@@ -237,12 +237,6 @@ Se non vuoi farlo ora: lascia `VITE_RECAPTCHA_SITE_KEY` vuota, l'app funziona lo
 
 ---
 
-## 🧹 Pulizia del vecchio progetto natalizio (opzionale)
-
-CucinIAmo vive in un progetto Firebase nuovo. Quando non ti serve più il vecchio "Christmas Menu Generator", puoi eliminare il suo progetto Firebase: console Firebase → progetto vecchio → ⚙️ *Impostazioni progetto* → in fondo, **"Elimina progetto"**. Anche lì era tutto sul piano gratuito, quindi non c'è fretta: non sta costando nulla.
-
----
-
 ## 🏗️ Architettura in breve
 
 **React (su Firebase Hosting) → Firebase AI Logic → Gemini API**, con login Google + allowlist Firestore davanti a tutto. Nessun server, nessun backend: i prompt e la normalizzazione delle risposte vivono in `frontend/src/services/aiService.ts`.
