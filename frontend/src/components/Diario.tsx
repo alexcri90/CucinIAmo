@@ -12,8 +12,14 @@
 // "L'ho cucinata!" del Ricettario; quelle 'foto' dalla Fase 4.
 // ═══════════════════════════════════════════════════════════════
 
-import { useEffect, useMemo, useState } from 'react';
-import { MEAL_LABELS, MEAL_ORDER, estimateNutritionFromText } from '../services/aiService';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  MEAL_LABELS,
+  MEAL_ORDER,
+  estimateNutritionFromPhoto,
+  estimateNutritionFromText,
+} from '../services/aiService';
+import { compressImage } from '../utils/image';
 import {
   addDiaryEntry,
   deleteDiaryEntry,
@@ -102,6 +108,7 @@ const EntryModal = ({
     meal_type: MealType;
     description: string;
     nutrition: NutritionInfo | null;
+    from_photo: boolean;
   }) => void;
 }) => {
   const [mealType, setMealType] = useState<MealType>(initial?.meal_type ?? 'pranzo');
@@ -113,6 +120,16 @@ const EntryModal = ({
   const [estimating, setEstimating] = useState(false);
   const [estimateNote, setEstimateNote] = useState<string | null>(null);
   const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [fromPhoto, setFromPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const applyEstimate = (nutrition: NutritionInfo) => {
+    setCalories(String(nutrition.calories));
+    setProtein(String(nutrition.protein_g));
+    setCarbs(String(nutrition.carbs_g));
+    setFat(String(nutrition.fat_g));
+  };
 
   const handleEstimate = async () => {
     if (!description.trim() || estimating) return;
@@ -121,13 +138,37 @@ const EntryModal = ({
     setEstimateNote(null);
     try {
       const est = await estimateNutritionFromText(description, selectedModel);
-      setCalories(String(est.nutrition.calories));
-      setProtein(String(est.nutrition.protein_g));
-      setCarbs(String(est.nutrition.carbs_g));
-      setFat(String(est.nutrition.fat_g));
+      applyEstimate(est.nutrition);
       setEstimateNote(`Stima AI (confidenza ${est.confidence}) — ${est.assumed_portion}. Correggi pure i valori.`);
     } catch (err) {
       setEstimateError(err instanceof Error ? err.message : 'Errore nella stima');
+    } finally {
+      setEstimating(false);
+    }
+  };
+
+  // 📸 Foto del piatto → compressione client-side → stima Gemini.
+  // La foto NON viene salvata: si persiste solo la stima.
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permette di riscegliere lo stesso file
+    if (!file || estimating) return;
+    setEstimating(true);
+    setEstimateError(null);
+    setEstimateNote(null);
+    try {
+      const compressed = await compressImage(file);
+      setPhotoPreview(compressed.dataUrl);
+      const est = await estimateNutritionFromPhoto(compressed.base64, compressed.mimeType, selectedModel);
+      applyEstimate(est.nutrition);
+      // La descrizione dell'utente, se già scritta, ha la precedenza
+      if (!description.trim()) setDescription(est.description);
+      setFromPhoto(true);
+      setEstimateNote(
+        `Stima AI dalla foto (confidenza ${est.confidence}) — ${est.assumed_portion}. Correggi pure i valori.`
+      );
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : "Errore nell'analisi della foto");
     } finally {
       setEstimating(false);
     }
@@ -143,6 +184,7 @@ const EntryModal = ({
       nutrition: hasNutrition
         ? { calories: num(calories), protein_g: num(protein), carbs_g: num(carbs), fat_g: num(fat) }
         : null,
+      from_photo: fromPhoto,
     });
   };
 
@@ -174,14 +216,39 @@ const EntryModal = ({
             />
           </label>
 
-          <button
-            type="button"
-            className="action-button estimate-btn"
-            onClick={() => void handleEstimate()}
-            disabled={!description.trim() || estimating}
-          >
-            {estimating ? 'Stimo…' : '✨ Stima kcal con AI'}
-          </button>
+          <div className="estimate-row">
+            <button
+              type="button"
+              className="action-button estimate-btn"
+              onClick={() => void handleEstimate()}
+              disabled={!description.trim() || estimating}
+            >
+              {estimating ? 'Stimo…' : '✨ Stima kcal con AI'}
+            </button>
+            <button
+              type="button"
+              className="action-button estimate-btn"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={estimating}
+              title="Fotografa il piatto o scegli una foto: l'AI stima le calorie. La foto non viene salvata."
+            >
+              📸 Analizza una foto
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => void handlePhoto(e)}
+              hidden
+            />
+          </div>
+          {photoPreview && (
+            <div className="photo-preview">
+              <img src={photoPreview} alt="Foto del piatto (non verrà salvata)" />
+              <span>La foto viene solo analizzata, non salvata.</span>
+            </div>
+          )}
           {estimateNote && <p className="estimate-note">💡 {estimateNote}</p>}
           {estimateError && <p className="estimate-note error">❌ {estimateError}</p>}
 
@@ -294,7 +361,12 @@ const Diario = ({ uid, selectedModel }: DiarioProps) => {
     );
   };
 
-  const handleSaveEntry = (data: { meal_type: MealType; description: string; nutrition: NutritionInfo | null }) => {
+  const handleSaveEntry = (data: {
+    meal_type: MealType;
+    description: string;
+    nutrition: NutritionInfo | null;
+    from_photo: boolean;
+  }) => {
     const initial = entryModal?.initial ?? null;
     setEntryModal(null);
     const entry: DiaryEntry = {
@@ -303,7 +375,7 @@ const Diario = ({ uid, selectedModel }: DiarioProps) => {
       description: data.description,
       nutrition: data.nutrition,
       recipe_id: initial?.recipe_id ?? null,
-      source: initial?.source ?? 'manuale',
+      source: initial?.source ?? (data.from_photo ? 'foto' : 'manuale'),
       logged_at: initial?.logged_at ?? new Date().toISOString(),
     };
     const op = initial ? updateDiaryEntry(uid, date, entry) : addDiaryEntry(uid, date, entry);

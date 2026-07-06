@@ -8,8 +8,8 @@
 ## 📊 Stato del Progetto
 
 **Ultimo aggiornamento:** 6 Luglio 2026
-**Versione corrente:** 1.2.0
-**Prossima tappa:** Roadmap v2 (vedi sezione 🗺️) — Ricettario personale, poi Diario alimentare e stima calorie da foto (solo web app: l'app installabile è rimandata)
+**Versione corrente:** 1.5.0
+**Stato Roadmap v2:** tutte e 4 le fasi implementate e deployate (Fase 1 verificata manualmente; Fasi 2-4 da provare sul campo). Prossime idee: vedi "Fase 5+"
 
 ### 🎯 Cos'è CucinIAmo
 
@@ -25,6 +25,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.5.0** | **Fase 4 Roadmap v2 — Foto→calorie**: `utils/image.ts` (compressione canvas ≤1024px JPEG), `estimateNutritionFromPhoto` (Gemini multimodale via inlineData), bottone "📸 Analizza una foto" nel modal del diario con stima correggibile e anteprima locale; la foto non viene mai salvata (`source: 'foto'`) |
 | **1.4.0** | **Fase 3 Roadmap v2 — Diario alimentare**: `diaryService.ts` (un doc per giorno su `users/{uid}/diary/{YYYY-MM-DD}`), componente `Diario.tsx` con vista giorno/mese, entry per pasto con kcal/macro, stima kcal da testo con Gemini (`estimateNutritionFromText`), budget kcal giornaliero (prefs), aggancio "L'ho cucinata!" → diario |
 | **1.3.0** | **Fase 2 Roadmap v2 — Ricettario completo**: componenti `Ricettario.tsx` + `RecipeDetails.tsx`, ricerca/filtri/ordinamento, stelle 1-5 cliccabili, flusso "✅ L'ho cucinata!" (cooked_count + rating + nota), editing della copia personale (dosi, ingredienti, passaggi, note chef, nutrizione) con badge "Modificata", note datate |
 | **1.2.0** | **Fase 1 Roadmap v2 — Fondamenta ricettario**: security rules `users/{uid}/**` con controllo allowlist (`isAllowed()`), nuovi tipi `SavedRecipe`/`RecipeNote`, `services/recipeService.ts` (CRUD Firestore), navigazione a tab 🍳 Genera / 📖 Ricettario, bottone 💾 su ogni piatto del menù, vista elenco base del ricettario (con eliminazione) |
@@ -120,8 +121,11 @@ c:\Users\alexc\Local Github\P4B\CucinIAmo\
         │   ├── diaryService.ts   # CRUD diario (users/{uid}/diary/{data}) + prefs
         │   └── recipeService.ts  # CRUD ricettario su Firestore (users/{uid}/recipes)
         │
-        └── types\
-            └── index.ts          # Modello dati (FONTE DI VERITÀ)
+        ├── types\
+        │   └── index.ts          # Modello dati (FONTE DI VERITÀ)
+        │
+        └── utils\
+            └── image.ts          # Compressione foto client-side (per la stima AI)
 ```
 
 ---
@@ -373,14 +377,16 @@ La feature vera e propria, sopra le fondamenta della Fase 1. Il ricettario è or
 
 **Criterio di completamento:** registro colazione manuale e una ricetta cucinata, vedo il totale kcal del giorno, e navigando indietro ritrovo i giorni passati.
 
-### 📸 Fase 4 — Foto del piatto → stima calorie (v1.5.0)
+### 📸 Fase 4 — Foto del piatto → stima calorie (v1.5.0) ✅ IMPLEMENTATA
 
-- [ ] Cattura foto: `<input type="file" accept="image/*" capture="environment">` (funziona nel browser di iOS e Android senza permessi speciali)
-- [ ] Compressione client-side (canvas, lato lungo ~1024px, JPEG qualità ~0.8) prima dell'invio — riduce latenza e consumo del free tier
-- [ ] `aiService.ts`: nuova funzione multimodale (immagine + prompt → JSON `{ descrizione, porzione stimata, kcal, macro, confidenza }`) via Firebase AI Logic, stessa pipeline di normalizzazione
-- [ ] UI risultato: stima mostrata come **correggibile** (l'utente può aggiustare porzione/kcal prima di confermare) + disclaimer che è una stima grossolana
-- [ ] "Aggiungi al diario" → crea una `DiaryEntry` con `source: 'foto'`. **La foto NON viene salvata** (vedi vincoli sopra)
-- [ ] Gestione errori: foto non riconoscibile, quota Gemini esaurita
+Integrata nel modal "Aggiungi al diario" (bottone "📸 Analizza una foto" accanto alla stima da testo).
+
+- [x] Cattura foto: `<input type="file" accept="image/*" capture="environment">` (browser iOS/Android senza permessi speciali)
+- [x] Compressione client-side (`utils/image.ts`: canvas, lato lungo ≤1024px, JPEG 0.8) prima dell'invio
+- [x] `estimateNutritionFromPhoto` in aiService: Gemini multimodale (prompt + `inlineData`) → JSON `{description, assumed_portion, nutrition, confidence}`, stessa pipeline di normalizzazione
+- [x] UI risultato correggibile: la stima riempie i campi kcal/macro (modificabili prima di salvare), con nota su porzione assunta e confidenza; la descrizione scritta dall'utente ha la precedenza su quella dell'AI
+- [x] Salvataggio come `DiaryEntry` con `source: 'foto'`; **la foto NON viene salvata** (solo anteprima locale nel modal, con avviso esplicito)
+- [x] Gestione errori: foto non cibo (confidence bassa, kcal 0), quota esaurita (mapAiError), file non leggibile
 
 **Criterio di completamento:** fotografo un piatto di pasta col telefono, ottengo una stima kcal plausibile, la correggo e la salvo nel diario di oggi.
 

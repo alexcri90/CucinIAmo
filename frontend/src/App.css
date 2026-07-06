@@ -2110,8 +2110,33 @@
 }
 
 /* ─── Stima AI nel modal entry ─── */
+.estimate-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .estimate-btn {
   align-self: flex-start;
+}
+
+.photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.photo-preview img {
+  max-width: 120px;
+  max-height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.photo-preview span {
+  font-size: 12px;
+  color: var(--mist);
 }
 
 .estimate-note {

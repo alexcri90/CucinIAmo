@@ -778,3 +778,42 @@ Le stime si riferiscono alla porzione descritta (campo "nutrition" con numeri, n
 
   return normalizeEstimate(parseJsonResponse(text));
 }
+
+/**
+ * Stima kcal e macro dalla FOTO di un piatto (Gemini multimodale).
+ * L'immagine arriva già compressa client-side (vedi utils/image.ts)
+ * e non viene mai salvata da nessuna parte.
+ */
+export async function estimateNutritionFromPhoto(
+  base64Image: string,
+  mimeType: string,
+  modelId: string
+): Promise<NutritionEstimate> {
+  const model = getModel(modelId, NUTRITIONIST_SYSTEM_PROMPT, 0.3);
+  const prompt = `
+Osserva la foto allegata di un piatto/cibo e stima calorie e macronutrienti della porzione visibile.
+
+Restituisci SOLO un JSON con questa struttura:
+${ESTIMATE_JSON_EXAMPLE}
+
+Regole:
+- "description": cosa vedi nel piatto, in italiano, breve (es. "Piatto di spaghetti al pomodoro con basilico")
+- "assumed_portion": la porzione che hai assunto guardando la foto
+- "nutrition": stima per la porzione VISIBILE nella foto (numeri, non stringhe)
+- "confidence": "bassa" se il cibo è poco riconoscibile o la porzione molto incerta
+- Se nella foto NON c'è cibo, usa confidence "bassa", nutrition a 0 e spiegalo nella description
+`;
+
+  let text: string;
+  try {
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { mimeType, data: base64Image } },
+    ]);
+    text = result.response.text();
+  } catch (error) {
+    throw mapAiError(error);
+  }
+
+  return normalizeEstimate(parseJsonResponse(text));
+}
