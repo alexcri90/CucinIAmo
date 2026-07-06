@@ -1606,6 +1606,109 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   NAVIGAZIONE PRINCIPALE (🍳 Genera | 📖 Ricettario)
+   ═══════════════════════════════════════════════════════════════ */
+
+.app-nav {
+  display: flex;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  box-shadow: var(--shadow-card-sm);
+  padding: 5px;
+  margin: 0 auto 22px;
+  width: min(420px, 100%);
+}
+
+.app-nav button {
+  flex: 1;
+  padding: 11px 8px;
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+  font: 500 15px var(--font-ui);
+  background: transparent;
+  color: var(--slate);
+  transition: var(--transition);
+}
+
+.app-nav button:hover {
+  color: var(--ink);
+}
+
+.app-nav button.active {
+  font-weight: 600;
+  color: #fff;
+  background: var(--grad);
+  box-shadow: var(--shadow-brand-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RICETTARIO
+   ═══════════════════════════════════════════════════════════════ */
+
+.ricettario {
+  padding: 32px 34px 40px;
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.ricettario-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: var(--slate);
+}
+
+/* Variante colorata dello spinner (quello base è bianco, pensato
+   per stare sopra il bottone a gradiente) */
+.ricettario-status .spinner {
+  border-color: rgba(176, 44, 143, 0.2);
+  border-top-color: var(--brand-ink);
+}
+
+.ricettario-empty {
+  text-align: center;
+  padding: 36px 20px 48px;
+  color: var(--slate);
+}
+
+.ricettario-empty-emoji {
+  font-size: 44px;
+  margin: 0 0 6px;
+}
+
+.ricettario-empty h3 {
+  font: 600 22px var(--font-display);
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.ricettario-empty p {
+  margin: 0 0 20px;
+}
+
+.recipe-rating {
+  color: var(--brand-arancio);
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.regenerate-btn.save.saved {
+  background: var(--positive-bg);
+  color: var(--positive);
+  cursor: default;
+  font-weight: 700;
+}
+
+.regenerate-btn.delete:hover {
+  background: #fdecec;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    STAMPA
    ═══════════════════════════════════════════════════════════════ */
 
@@ -1613,6 +1716,7 @@
   .submit-button,
   .action-button,
   .tabs,
+  .app-nav,
   .footer,
   .regenerate-buttons,
   .modal-overlay,

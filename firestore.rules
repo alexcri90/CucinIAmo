@@ -3,23 +3,42 @@ rules_version = '2';
 // ═══════════════════════════════════════════════════════════════
 // 🔐 SECURITY RULES - CucinIAmo
 //
-// Unica collection: "allowlist"
-// - Ogni documento ha come ID un'email in minuscolo
-//   (es. allowlist/mario.rossi@gmail.com)
-// - Un utente autenticato può leggere SOLO il documento che
-//   corrisponde alla propria email (per verificare di essere
-//   autorizzato). Nessuno può scrivere dal client: i documenti
-//   si aggiungono/rimuovono solo dalla console Firebase.
+// Collections:
+//
+// 1. "allowlist" — un doc per email autorizzata (ID = email
+//    minuscola, es. allowlist/mario.rossi@gmail.com). Un utente
+//    autenticato può leggere SOLO il proprio documento; nessuna
+//    scrittura dal client (si gestisce dalla console Firebase).
+//
+// 2. "users/{uid}/..." — dati personali (ricettario, diario).
+//    Ogni utente legge/scrive SOLO i propri documenti, e solo se
+//    la sua email è ancora in allowlist: rimuovere l'email dalla
+//    console revoca sia l'accesso all'app sia l'accesso ai dati.
 // ═══════════════════════════════════════════════════════════════
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // L'utente autenticato è nella allowlist?
+    function isAllowed() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/allowlist/$(request.auth.token.email.lower()));
+    }
 
     match /allowlist/{email} {
       allow get: if request.auth != null
                  && request.auth.token.email != null
                  && request.auth.token.email.lower() == email;
       allow list, write: if false;
+    }
+
+    // Dati personali: ricettario (users/{uid}/recipes/{id}),
+    // in futuro diario (users/{uid}/diary/{yyyy-mm-dd}), ecc.
+    // (Il limite hard di Firestore di 1 MiB/documento fa già da
+    // tetto alla dimensione dei dati scrivibili.)
+    match /users/{uid}/{document=**} {
+      allow read, write: if isAllowed() && request.auth.uid == uid;
     }
 
     // Tutto il resto: negato

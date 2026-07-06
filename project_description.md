@@ -7,8 +7,9 @@
 
 ## 📊 Stato del Progetto
 
-**Ultimo aggiornamento:** 5 Luglio 2026
-**Versione corrente:** 1.1.0
+**Ultimo aggiornamento:** 6 Luglio 2026
+**Versione corrente:** 1.2.0
+**Prossima tappa:** Roadmap v2 (vedi sezione 🗺️) — Ricettario personale, poi Diario alimentare e stima calorie da foto (solo web app: l'app installabile è rimandata)
 
 ### 🎯 Cos'è CucinIAmo
 
@@ -24,6 +25,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.2.0** | **Fase 1 Roadmap v2 — Fondamenta ricettario**: security rules `users/{uid}/**` con controllo allowlist (`isAllowed()`), nuovi tipi `SavedRecipe`/`RecipeNote`, `services/recipeService.ts` (CRUD Firestore), navigazione a tab 🍳 Genera / 📖 Ricettario, bottone 💾 su ogni piatto del menù, vista elenco base del ricettario (con eliminazione) |
 | **1.1.0** | **Applicazione del design system CucinIAmo**: gradiente brand viola→magenta→corallo→arancio, font Space Grotesk (titoli) + Instrument Sans (UI), neutri caldi, chip/card/tab ridisegnati, nuovo logo (pomodoro, `frontend/public/logo.png`, anche favicon), login e header rinnovati. Fonte del design: cartella `CucinIAmo design system/` (mock HTML interattivo) |
 | **1.0.0** | **Trasformazione in CucinIAmo**: rimozione backend Python/Datapizza e test (era una demo locale non usata in produzione), nuovo modello dati (Meal/Dish/NutritionInfo), nuovi prompt con budget calorico, form rinnovato (pasti, cucine ibride, limite kcal), nuova palette non natalizia, docs riscritte |
 | 0.16.0 | Migrazione a Firebase: hosting Spark, login Google + allowlist Firestore, generazione client-side via Firebase AI Logic, selettore modello Gemini |
@@ -84,9 +86,9 @@ Punti chiave:
 ## 📁 Struttura Progetto
 
 ```
-D:\GitHubRepos\AI_Recipes\
+c:\Users\alexc\Local Github\P4B\CucinIAmo\
 ├── firebase.json                 # Hosting + Firestore rules + predeploy build
-├── .firebaserc                   # Project ID Firebase (placeholder da sostituire)
+├── .firebaserc                   # Project ID Firebase: cuciniamo-ricette
 ├── firestore.rules               # Security rules: allowlist read-only per il proprio doc
 ├── firestore.indexes.json
 ├── FIREBASE_DEPLOYMENT.md        # Guida passo-passo (per chi parte da zero)
@@ -109,7 +111,8 @@ D:\GitHubRepos\AI_Recipes\
         │   └── AuthGate.tsx      # Login Google + verifica allowlist
         │
         ├── services\
-        │   └── aiService.ts      # Prompt, chiamate Gemini, parsing/normalizzazione, helper kcal
+        │   ├── aiService.ts      # Prompt, chiamate Gemini, parsing/normalizzazione, helper kcal
+        │   └── recipeService.ts  # CRUD ricettario su Firestore (users/{uid}/recipes)
         │
         └── types\
             └── index.ts          # Modello dati (FONTE DI VERITÀ)
@@ -199,7 +202,7 @@ Invariata rispetto alla v0.16.0 (funzionava benissimo):
 
 ```powershell
 # Sviluppo locale
-cd D:\GitHubRepos\AI_Recipes\frontend
+cd "c:\Users\alexc\Local Github\P4B\CucinIAmo\frontend"
 npm install
 npm run dev          # http://localhost:5173
 
@@ -242,17 +245,151 @@ Somme di calorie e lista spesa aggregata possono essere sbagliate: si ricalcolan
 
 ---
 
-## 🚀 Possibili Evoluzioni Future
+## 🗺️ Roadmap v2 — Ricettario, Diario, Foto→Calorie
+
+> Definita il 6 Luglio 2026 (rivista lo stesso giorno: **app mobile/PWA rimandata**, si resta web app). Questa sezione è il **piano d'azione ufficiale** per le prossime versioni. Regola invariata: **solo risorse gratuite** (piano Spark, nessuna carta di credito). Ogni fase è deployabile da sola: si rilascia, si usa, si passa alla successiva.
+
+### Vincoli "gratis" verificati (decisioni di architettura)
+
+Due fatti scoperti in fase di pianificazione che modellano tutta la roadmap:
+
+1. **Cloud Storage for Firebase NON è più gratuito** sui nuovi progetti Spark (da ottobre 2024 richiede il piano Blaze anche per il bucket di default). Conseguenza: **le foto dei piatti non vengono mai salvate**. Per la feature foto→calorie l'immagine viene compressa client-side, inviata a Gemini (multimodale, già incluso nel free tier di Firebase AI Logic) e si persiste su Firestore **solo la stima testuale/numerica**. Opzionale: una miniatura molto compressa (~100-200 KB) come stringa base64 dentro il documento Firestore (limite 1 MiB/doc), da valutare solo se davvero utile.
+2. **Pubblicare una app "vera" negli store costa** (Apple Developer $99/anno; Google Play $25 una tantum). La strada gratuita per iPhone e Android sarebbe la **PWA** (manifest + service worker, installabile dalla home screen, fotocamera via `<input capture>`). Decisione del 6 Luglio 2026: **per ora si resta web app e basta** — la PWA è spostata tra le idee future (vedi tabella in fondo). Nota bene: tutto il resto della roadmap funziona comunque perfettamente dal browser del telefono, foto comprese.
+
+### Quota Firestore (Spark) vs. uso previsto
+
+Utenti previsti: ~10-20 (amici e parenti). Quote gratuite: 50.000 letture/giorno, 20.000 scritture/giorno, 1 GiB storage. Anche con un uso intenso (ogni utente apre il ricettario e il diario più volte al giorno) si resta sotto il 5% delle quote. Una ricetta salvata pesa ~5-15 KB → 1 GiB ≈ decine di migliaia di ricette. **Nessun rischio concreto**; se mai si superasse una quota, il servizio si ferma fino al giorno dopo senza costi.
+
+### Nuovo modello dati Firestore
+
+Tutti i dati personali vivono sotto `users/{uid}/...` (uid = utente Firebase Auth). L'allowlist resta la porta d'ingresso.
+
+```
+users/{uid}/recipes/{recipeId}     ← Ricettario (Fase 1-2)
+users/{uid}/diary/{YYYY-MM-DD}     ← Diario alimentare (Fase 4)
+allowlist/{email}                  ← invariata
+```
+
+Tipi previsti (verranno aggiunti a `frontend/src/types/index.ts`, la fonte di verità):
+
+```typescript
+// ── Ricettario ──
+interface SavedRecipe {
+  recipe_id: string;            // uuid client-side (= ID documento)
+  saved_at: string;             // ISO
+  updated_at: string;           // ISO
+  dish: Dish;                   // SNAPSHOT del piatto generato (modificabile dall'utente)
+  source: { menu_id: string; meal_type: MealType } | null;
+  rating: number | null;        // 1-5 stelle, solo se cucinata davvero
+  cooked_count: number;         // quante volte è stata cucinata
+  notes: RecipeNote[];          // commenti alle preparazioni
+  is_customized: boolean;       // true se dish è stato modificato rispetto all'originale
+}
+
+interface RecipeNote { date: string; text: string; }
+
+// ── Diario alimentare ──
+interface DiaryDay {            // ID documento = "YYYY-MM-DD"
+  date: string;
+  entries: DiaryEntry[];
+}
+
+interface DiaryEntry {
+  entry_id: string;
+  meal_type: MealType;
+  description: string;          // "Pasta al pesto", "2 fette di torta"...
+  nutrition: NutritionInfo | null;
+  recipe_id: string | null;     // link a una SavedRecipe (se si è cucinata una ricetta)
+  source: 'manuale' | 'ricettario' | 'foto';
+  logged_at: string;            // ISO
+}
+```
+
+Scelte di design:
+- **`dish` è uno snapshot, non un riferimento**: l'utente può modificare dosi, ingredienti e passaggi della SUA copia senza toccare nulla di condiviso. Niente ricette globali, niente problemi di permessi.
+- **Il diario è un documento per giorno** (non una collection di entry): una sola lettura carica l'intera giornata, e la vista mensile costa ≤31 letture.
+- **`rating` e `cooked_count` separati dalle note**: la valutazione ha senso solo per ricette effettivamente cucinate; la UI proporrà le stelle nel flusso "L'ho cucinata!".
+
+### Nuove Security Rules (sostituiranno `firestore.rules`)
+
+```
+function isAllowed() {
+  return request.auth != null
+    && request.auth.token.email != null
+    && exists(/databases/$(database)/documents/allowlist/$(request.auth.token.email.lower()));
+}
+
+match /users/{uid}/{document=**} {
+  allow read, write: if isAllowed() && request.auth.uid == uid;
+}
+// allowlist: invariata (get del solo proprio doc, nessuna scrittura client)
+```
+
+Ogni utente legge/scrive **solo** i propri dati, e solo se è ancora in allowlist (revocare l'email = revocare anche l'accesso ai dati). Nota: le rules di Firestore non permettono di validare la dimensione in byte di un documento (quella funzione esiste solo in Storage); fa da tetto il limite hard di 1 MiB/doc di Firestore.
+
+### 📦 Fase 1 — Fondamenta: persistenza + navigazione (v1.2.0) ✅ IMPLEMENTATA
+
+L'infrastruttura su cui poggia tutto il resto. Codice completato il 6 Luglio 2026; resta la verifica sul progetto Firebase reale dopo il deploy.
+
+- [x] Nuove security rules `users/{uid}/**` con controllo allowlist (`isAllowed()`) — nota: niente check sulla dimensione in byte (non esiste nelle rules Firestore; fa da tetto il limite hard di 1 MiB/doc)
+- [x] Nuovo service `frontend/src/services/recipeService.ts`: CRUD su `users/{uid}/recipes` (save/list/update/delete); `stripUndefined` prima di ogni scrittura perché Firestore rifiuta i campi `undefined` (i piatti hanno campi opzionali)
+- [x] Navigazione a schede nell'app (stato React, niente router): **🍳 Genera** | **📖 Ricettario** | (futuro: **📔 Diario**)
+- [x] Bottone 💾 su ogni piatto del menù generato (💾 → spinner → ✓ verde; disabilitato se già salvata)
+- [x] Nuovi tipi in `types/index.ts` (`SavedRecipe`, `RecipeNote`)
+- [x] Vista elenco base del ricettario: card con nome/cucina/kcal/stelle/data, dettaglio ricetta espandibile, stato vuoto, eliminazione con conferma (anticipata dalla Fase 2)
+- [x] Deploy su https://cuciniamo-ricette.web.app (6 Luglio 2026: rules + hosting pubblicati, bundle verificato online)
+- [x] Test manuale del criterio di completamento — verificato il 6 Luglio 2026 ✅
+
+**Criterio di completamento:** genero un menù, salvo un piatto, ricarico la pagina da un altro browser e lo ritrovo. ✅ Verificato.
+
+### 📖 Fase 2 — Ricettario completo (v1.3.0)
+
+La feature vera e propria, sopra le fondamenta della Fase 1.
+
+- [ ] Vista elenco: card ricetta (nome, cucina, kcal, stelle, badge "modificata"), ricerca per nome, filtri per tipo pasto/cucina/valutazione, ordinamento (data, rating, kcal)
+- [ ] Vista dettaglio: ricetta completa (ingredienti, passaggi, macro) riusando i componenti di visualizzazione del menù
+- [ ] Flusso "✅ L'ho cucinata!": incrementa `cooked_count`, chiede la valutazione a stelle (1-5) e una nota opzionale sulla preparazione
+- [ ] Valutazione modificabile in ogni momento dal dettaglio
+- [ ] **Editing della ricetta**: modifica di dosi/quantità, aggiunta/rimozione ingredienti, modifica dei passaggi, note dello chef personali → setta `is_customized: true` e aggiorna `updated_at`
+- [ ] Note/commenti multipli con data (diario delle preparazioni della singola ricetta)
+- [x] Eliminazione ricetta (con conferma) — anticipata in v1.2.0
+
+**Criterio di completamento:** salvo una ricetta, la modifico (dosi + un ingrediente), la segno come cucinata con 4 stelle e un commento, e ritrovo tutto dopo il logout/login.
+
+### 📔 Fase 3 — Diario alimentare (v1.4.0)
+
+- [ ] Nuovi tipi `DiaryDay`/`DiaryEntry` + `diaryService.ts` (CRUD su `users/{uid}/diary/{YYYY-MM-DD}`)
+- [ ] Tab **📔 Diario**: vista giorno (default oggi) con entry raggruppate per pasto e totale kcal/macro della giornata (somme client-side, come sempre)
+- [ ] Aggiunta entry manuale: descrizione + pasto + kcal/macro opzionali (con aiuto Gemini per stimare le kcal da una descrizione testuale, riusando la pipeline prompt→JSON→normalizzazione esistente)
+- [ ] Aggiunta dal ricettario: "L'ho cucinata!" (Fase 2) propone anche "Aggiungi al diario di oggi" portandosi dietro kcal e macro della ricetta
+- [ ] Navigazione tra i giorni + vista settimana/mese con totali (≤31 letture per mese)
+- [ ] Confronto opzionale col budget kcal giornaliero dell'utente
+
+**Criterio di completamento:** registro colazione manuale e una ricetta cucinata, vedo il totale kcal del giorno, e navigando indietro ritrovo i giorni passati.
+
+### 📸 Fase 4 — Foto del piatto → stima calorie (v1.5.0)
+
+- [ ] Cattura foto: `<input type="file" accept="image/*" capture="environment">` (funziona nel browser di iOS e Android senza permessi speciali)
+- [ ] Compressione client-side (canvas, lato lungo ~1024px, JPEG qualità ~0.8) prima dell'invio — riduce latenza e consumo del free tier
+- [ ] `aiService.ts`: nuova funzione multimodale (immagine + prompt → JSON `{ descrizione, porzione stimata, kcal, macro, confidenza }`) via Firebase AI Logic, stessa pipeline di normalizzazione
+- [ ] UI risultato: stima mostrata come **correggibile** (l'utente può aggiustare porzione/kcal prima di confermare) + disclaimer che è una stima grossolana
+- [ ] "Aggiungi al diario" → crea una `DiaryEntry` con `source: 'foto'`. **La foto NON viene salvata** (vedi vincoli sopra)
+- [ ] Gestione errori: foto non riconoscibile, quota Gemini esaurita
+
+**Criterio di completamento:** fotografo un piatto di pasta col telefono, ottengo una stima kcal plausibile, la correggo e la salvo nel diario di oggi.
+
+### Fase 5+ — Oltre la roadmap (non pianificate)
 
 | Idea | Note |
 |------|------|
-| 🎨 **Illustrazioni dedicate** | Il logo c'è (v1.1.0); restano le emoji come icone di sezione/piatto, sostituibili con un set di icone coerente col design system |
-| 📔 **Diario calorie** | Salvare su Firestore cosa si è mangiato giorno per giorno con totali e storico (richiede nuove security rules per una collection `users/{uid}/diary`) — valutato e rimandato in v1.0.0 |
-| 💾 **Salvataggio menù** | Persistere i menù generati (oggi vivono solo nello stato React) |
+| 📱 **PWA installabile** | `vite-plugin-pwa`, manifest + service worker, icone dal logo, istruzioni installazione iOS/Android; attenzione al login Google in standalone su iOS (eventuale `signInWithRedirect`) — rimandata il 6 Luglio 2026 per restare web-only |
+| 🏪 **App negli store (Capacitor)** | Stessa codebase wrappata in nativo; richiede Apple Developer $99/anno e Google Play $25 — fuori dal vincolo "solo gratis" |
+| 💾 **Salvataggio menù interi** | Oggi si salvano i singoli piatti; si potrebbe persistere il menù completo con lista spesa e timeline |
+| 📊 **Statistiche diario** | Grafici settimanali/mensili kcal e macro |
+| 🎨 **Illustrazioni dedicate** | Sostituire le emoji con un set di icone coerente col design system |
 | 🌐 **i18n** | Oggi l'app è solo in italiano (UI e prompt) |
-| 📱 **PWA** | Manifest + service worker per installarla sul telefono |
 
 ---
 
 *Documento tecnico del progetto CucinIAmo.*
-*Versione documento: 7.0 — 5 Luglio 2026*
+*Versione documento: 8.0 — 6 Luglio 2026*

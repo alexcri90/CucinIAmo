@@ -98,3 +98,32 @@ export interface MenuOutput {
   shopping_list: ShoppingList;
   timeline: Timeline;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 📖 RICETTARIO (persistito su Firestore: users/{uid}/recipes/{id})
+// ═══════════════════════════════════════════════════════════════
+
+// Nota/commento datato su una preparazione della ricetta
+export interface RecipeNote {
+  date: string; // ISO
+  text: string;
+}
+
+// Ricetta salvata dall'utente. `dish` è uno SNAPSHOT del piatto
+// generato: l'utente può modificare la propria copia (dosi,
+// ingredienti, passaggi) senza toccare nulla di condiviso.
+export interface SavedRecipe {
+  recipe_id: string;            // uuid client-side (= ID documento Firestore)
+  saved_at: string;             // ISO
+  updated_at: string;           // ISO
+  dish: Dish;
+  /** Da quale menù generato proviene (null se orfana). */
+  source: { menu_id: string; meal_type: MealType } | null;
+  /** Valutazione 1-5 stelle; null finché non è stata cucinata/valutata. */
+  rating: number | null;
+  /** Quante volte è stata cucinata. */
+  cooked_count: number;
+  notes: RecipeNote[];
+  /** True se l'utente ha modificato il piatto rispetto all'originale. */
+  is_customized: boolean;
+}
