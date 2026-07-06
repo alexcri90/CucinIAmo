@@ -109,6 +109,44 @@ export interface RecipeNote {
   text: string;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 📔 DIARIO ALIMENTARE (Firestore: users/{uid}/diary/{YYYY-MM-DD})
+// Un documento per giorno: una lettura carica l'intera giornata.
+// ═══════════════════════════════════════════════════════════════
+
+export type DiaryEntrySource = "manuale" | "ricettario" | "foto";
+
+export interface DiaryEntry {
+  entry_id: string;              // uuid client-side
+  meal_type: MealType;
+  description: string;           // "Pasta al pesto", "2 fette di torta"...
+  /** Kcal/macro per la porzione consumata; null se non indicate. */
+  nutrition: NutritionInfo | null;
+  /** Link a una SavedRecipe se si è cucinata una ricetta del ricettario. */
+  recipe_id: string | null;
+  source: DiaryEntrySource;
+  logged_at: string;             // ISO
+}
+
+export interface DiaryDay {
+  date: string;                  // "YYYY-MM-DD" (= ID documento)
+  entries: DiaryEntry[];
+}
+
+// Preferenze utente (Firestore: users/{uid}/settings/prefs)
+export interface UserPrefs {
+  /** Budget kcal giornaliero opzionale per il confronto nel diario. */
+  daily_kcal_budget: number | null;
+}
+
+// Stima nutrizionale prodotta dall'AI (da testo o da foto)
+export interface NutritionEstimate {
+  description: string;           // descrizione normalizzata del cibo
+  assumed_portion: string;       // porzione assunta per la stima
+  nutrition: NutritionInfo;
+  confidence: "alta" | "media" | "bassa";
+}
+
 // Ricetta salvata dall'utente. `dish` è uno SNAPSHOT del piatto
 // generato: l'utente può modificare la propria copia (dosi,
 // ingredienti, passaggi) senza toccare nulla di condiviso.

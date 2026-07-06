@@ -27,6 +27,8 @@ interface RicettarioProps {
   onGoGenerate: () => void;
   onUpdate: (recipeId: string, patch: RecipePatch) => Promise<void>;
   onDelete: (recipe: SavedRecipe) => Promise<void>;
+  /** Registra la ricetta cucinata nel diario di oggi (Fase 3). */
+  onLogToDiary: (recipe: SavedRecipe, mealType: MealType) => Promise<void>;
 }
 
 const MEAL_EMOJI: Record<MealType, string> = {
@@ -76,10 +78,12 @@ const CookedModal = ({
 }: {
   recipe: SavedRecipe;
   onClose: () => void;
-  onConfirm: (stars: number, note: string) => void;
+  onConfirm: (stars: number, note: string, diaryMeal: MealType | null) => void;
 }) => {
   const [stars, setStars] = useState<number>(recipe.rating ?? 0);
   const [note, setNote] = useState('');
+  const [addToDiary, setAddToDiary] = useState(false);
+  const [diaryMeal, setDiaryMeal] = useState<MealType>(recipe.source?.meal_type ?? 'pranzo');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -98,9 +102,26 @@ const CookedModal = ({
           rows={3}
           maxLength={500}
         />
+        <div className="diary-log-row">
+          <label className="diary-log-check">
+            <input
+              type="checkbox"
+              checked={addToDiary}
+              onChange={(e) => setAddToDiary(e.target.checked)}
+            />
+            📔 Aggiungi al diario di oggi
+          </label>
+          {addToDiary && (
+            <select value={diaryMeal} onChange={(e) => setDiaryMeal(e.target.value as MealType)}>
+              {(Object.keys(MEAL_LABELS) as MealType[]).map((m) => (
+                <option key={m} value={m}>{MEAL_EMOJI[m]} {MEAL_LABELS[m]}</option>
+              ))}
+            </select>
+          )}
+        </div>
         <div className="modal-actions">
           <button className="modal-btn secondary" onClick={onClose}>Annulla</button>
-          <button className="modal-btn primary" onClick={() => onConfirm(stars, note)}>
+          <button className="modal-btn primary" onClick={() => onConfirm(stars, note, addToDiary ? diaryMeal : null)}>
             ✅ Conferma
           </button>
         </div>
@@ -321,6 +342,7 @@ const Ricettario = ({
   onGoGenerate,
   onUpdate,
   onDelete,
+  onLogToDiary,
 }: RicettarioProps) => {
   const [search, setSearch] = useState('');
   const [filterMeal, setFilterMeal] = useState<MealType | 'tutti'>('tutti');
@@ -373,7 +395,7 @@ const Ricettario = ({
     void applyPatch(recipe, { rating: stars });
   };
 
-  const handleCooked = (recipe: SavedRecipe, stars: number, note: string) => {
+  const handleCooked = (recipe: SavedRecipe, stars: number, note: string, diaryMeal: MealType | null) => {
     setCookedModal(null);
     const patch: RecipePatch = { cooked_count: recipe.cooked_count + 1 };
     if (stars > 0) patch.rating = stars;
@@ -381,6 +403,11 @@ const Ricettario = ({
       patch.notes = [...recipe.notes, { date: new Date().toISOString(), text: note.trim() }];
     }
     void applyPatch(recipe, patch);
+    if (diaryMeal) {
+      onLogToDiary(recipe, diaryMeal).catch((err) =>
+        setActionError(err instanceof Error ? err.message : 'Errore nella registrazione sul diario')
+      );
+    }
   };
 
   const handleAddNote = (recipe: SavedRecipe, text: string) => {
@@ -544,7 +571,7 @@ const Ricettario = ({
         <CookedModal
           recipe={cookedModal}
           onClose={() => setCookedModal(null)}
-          onConfirm={(stars, note) => handleCooked(cookedModal, stars, note)}
+          onConfirm={(stars, note, diaryMeal) => handleCooked(cookedModal, stars, note, diaryMeal)}
         />
       )}
       {noteModal && (

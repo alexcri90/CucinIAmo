@@ -20,6 +20,7 @@ import type {
   Recipe,
   Ingredient,
   NutritionInfo,
+  NutritionEstimate,
   ShoppingList,
   Timeline,
 } from '../types';
@@ -710,4 +711,70 @@ export async function regenerateDish(
   // A volte il modello incapsula il piatto in una chiave contenitore
   const dishData = raw?.name ? raw : raw?.dish ?? raw?.new_dish ?? raw?.course ?? raw;
   return normalizeDish(dishData);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STIMA NUTRIZIONALE (diario alimentare)
+// Da descrizione testuale o da foto del piatto. Come per i menù,
+// sono STIME dell'LLM: ordine di grandezza, non valori da database.
+// ─────────────────────────────────────────────────────────────────
+
+const NUTRITIONIST_SYSTEM_PROMPT = `
+Sei un nutrizionista esperto specializzato nella stima di calorie e macronutrienti di cibi e piatti, a partire da descrizioni testuali o fotografie.
+
+REGOLE:
+1. Fornisci sempre stime REALISTICHE per la porzione effettivamente descritta/fotografata (non per 100g)
+2. Se la porzione non è chiara, assumi una porzione media da adulto e dichiaralo nel campo assumed_portion
+3. Sii onesto sulla confidenza: "bassa" se il cibo è ambiguo o la porzione molto incerta
+4. Rispondi SOLO con JSON valido, senza markdown né altro testo
+`;
+
+const ESTIMATE_JSON_EXAMPLE = `{
+  "description": "Piatto di spaghetti alla carbonara",
+  "assumed_portion": "porzione media (~120g di pasta cruda)",
+  "nutrition": {"calories": 650, "protein_g": 24, "carbs_g": 78, "fat_g": 26},
+  "confidence": "media"
+}`;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function normalizeEstimate(raw: any): NutritionEstimate {
+  const confidence = ['alta', 'media', 'bassa'].includes(raw?.confidence) ? raw.confidence : 'media';
+  return {
+    description: String(raw?.description ?? 'Cibo non identificato'),
+    assumed_portion: String(raw?.assumed_portion ?? 'porzione media'),
+    nutrition: normalizeNutrition(raw?.nutrition ?? raw),
+    confidence,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Stima kcal e macro dalla descrizione testuale di qualcosa che si è
+ * mangiato (es. "un piatto di lasagne e una mela").
+ */
+export async function estimateNutritionFromText(
+  description: string,
+  modelId: string
+): Promise<NutritionEstimate> {
+  const model = getModel(modelId, NUTRITIONIST_SYSTEM_PROMPT, 0.3);
+  const prompt = `
+Stima calorie e macronutrienti di questo cibo/pasto:
+
+"${description.trim()}"
+
+Restituisci SOLO un JSON con questa struttura:
+${ESTIMATE_JSON_EXAMPLE}
+
+Le stime si riferiscono alla porzione descritta (campo "nutrition" con numeri, non stringhe).
+`;
+
+  let text: string;
+  try {
+    const result = await model.generateContent(prompt);
+    text = result.response.text();
+  } catch (error) {
+    throw mapAiError(error);
+  }
+
+  return normalizeEstimate(parseJsonResponse(text));
 }

@@ -25,6 +25,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.4.0** | **Fase 3 Roadmap v2 — Diario alimentare**: `diaryService.ts` (un doc per giorno su `users/{uid}/diary/{YYYY-MM-DD}`), componente `Diario.tsx` con vista giorno/mese, entry per pasto con kcal/macro, stima kcal da testo con Gemini (`estimateNutritionFromText`), budget kcal giornaliero (prefs), aggancio "L'ho cucinata!" → diario |
 | **1.3.0** | **Fase 2 Roadmap v2 — Ricettario completo**: componenti `Ricettario.tsx` + `RecipeDetails.tsx`, ricerca/filtri/ordinamento, stelle 1-5 cliccabili, flusso "✅ L'ho cucinata!" (cooked_count + rating + nota), editing della copia personale (dosi, ingredienti, passaggi, note chef, nutrizione) con badge "Modificata", note datate |
 | **1.2.0** | **Fase 1 Roadmap v2 — Fondamenta ricettario**: security rules `users/{uid}/**` con controllo allowlist (`isAllowed()`), nuovi tipi `SavedRecipe`/`RecipeNote`, `services/recipeService.ts` (CRUD Firestore), navigazione a tab 🍳 Genera / 📖 Ricettario, bottone 💾 su ogni piatto del menù, vista elenco base del ricettario (con eliminazione) |
 | **1.1.0** | **Applicazione del design system CucinIAmo**: gradiente brand viola→magenta→corallo→arancio, font Space Grotesk (titoli) + Instrument Sans (UI), neutri caldi, chip/card/tab ridisegnati, nuovo logo (pomodoro, `frontend/public/logo.png`, anche favicon), login e header rinnovati. Fonte del design: cartella `CucinIAmo design system/` (mock HTML interattivo) |
@@ -110,11 +111,13 @@ c:\Users\alexc\Local Github\P4B\CucinIAmo\
         │
         ├── components\
         │   ├── AuthGate.tsx      # Login Google + verifica allowlist
+        │   ├── Diario.tsx        # Diario alimentare: giorno/mese, budget, stima AI
         │   ├── RecipeDetails.tsx # Dettaglio ricetta espandibile (menù + ricettario)
         │   └── Ricettario.tsx    # Vista ricettario: filtri, stelle, editing, note
         │
         ├── services\
         │   ├── aiService.ts      # Prompt, chiamate Gemini, parsing/normalizzazione, helper kcal
+        │   ├── diaryService.ts   # CRUD diario (users/{uid}/diary/{data}) + prefs
         │   └── recipeService.ts  # CRUD ricettario su Firestore (users/{uid}/recipes)
         │
         └── types\
@@ -359,14 +362,14 @@ La feature vera e propria, sopra le fondamenta della Fase 1. Il ricettario è or
 
 **Criterio di completamento:** salvo una ricetta, la modifico (dosi + un ingrediente), la segno come cucinata con 4 stelle e un commento, e ritrovo tutto dopo il logout/login.
 
-### 📔 Fase 3 — Diario alimentare (v1.4.0)
+### 📔 Fase 3 — Diario alimentare (v1.4.0) ✅ IMPLEMENTATA
 
-- [ ] Nuovi tipi `DiaryDay`/`DiaryEntry` + `diaryService.ts` (CRUD su `users/{uid}/diary/{YYYY-MM-DD}`)
-- [ ] Tab **📔 Diario**: vista giorno (default oggi) con entry raggruppate per pasto e totale kcal/macro della giornata (somme client-side, come sempre)
-- [ ] Aggiunta entry manuale: descrizione + pasto + kcal/macro opzionali (con aiuto Gemini per stimare le kcal da una descrizione testuale, riusando la pipeline prompt→JSON→normalizzazione esistente)
-- [ ] Aggiunta dal ricettario: "L'ho cucinata!" (Fase 2) propone anche "Aggiungi al diario di oggi" portandosi dietro kcal e macro della ricetta
-- [ ] Navigazione tra i giorni + vista settimana/mese con totali (≤31 letture per mese)
-- [ ] Confronto opzionale col budget kcal giornaliero dell'utente
+- [x] Nuovi tipi `DiaryDay`/`DiaryEntry`/`UserPrefs`/`NutritionEstimate` + `diaryService.ts` (CRUD su `users/{uid}/diary/{YYYY-MM-DD}`, range query sul documentId per il mese, prefs su `users/{uid}/settings/prefs`)
+- [x] Tab **📔 Diario** (`components/Diario.tsx`): vista giorno (default oggi) con entry raggruppate per pasto, totale kcal/macro della giornata (somme client-side), icona origine voce (✍️ manuale / 📖 ricettario / 📸 foto)
+- [x] Aggiunta/modifica/eliminazione entry manuale: descrizione + pasto + kcal/macro opzionali, con bottone "✨ Stima kcal con AI" (`estimateNutritionFromText` in aiService, con porzione assunta e confidenza, valori sempre correggibili)
+- [x] Aggiunta dal ricettario: "L'ho cucinata!" propone "📔 Aggiungi al diario di oggi" con scelta del pasto, portandosi dietro kcal e macro della ricetta (`source: 'ricettario'` + link `recipe_id`)
+- [x] Navigazione tra i giorni (frecce, date picker, "Oggi") + vista mese con kcal/giorno e media (≤31 letture)
+- [x] Budget kcal giornaliero opzionale salvato nelle prefs, con confronto verde/arancio nel totale del giorno e nella vista mese
 
 **Criterio di completamento:** registro colazione manuale e una ricetta cucinata, vedo il totale kcal del giorno, e navigando indietro ritrovo i giorni passati.
 

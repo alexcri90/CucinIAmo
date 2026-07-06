@@ -12,8 +12,10 @@ import {
   MEAL_LABELS,
 } from './services/aiService';
 import { saveRecipe, listRecipes, updateRecipe, deleteRecipe } from './services/recipeService';
+import { addDiaryEntry, toISODate } from './services/diaryService';
 import RecipeDetails from './components/RecipeDetails';
 import Ricettario, { type RecipePatch } from './components/Ricettario';
+import Diario from './components/Diario';
 import type {
   UserInput,
   MenuOutput,
@@ -28,7 +30,7 @@ import type {
 import './App.css';
 
 // Viste principali dell'app (navigazione a tab sotto l'header)
-type AppView = 'genera' | 'ricettario';
+type AppView = 'genera' | 'ricettario' | 'diario';
 
 const MODEL_STORAGE_KEY = 'cuciniamo-model';
 
@@ -235,6 +237,19 @@ function App({ user }: { user: User }) {
     } catch (err) {
       setRicettarioError(err instanceof Error ? err.message : "Errore nell'eliminazione della ricetta");
     }
+  };
+
+  // "L'ho cucinata!" → registra la ricetta nel diario di oggi
+  const handleLogToDiary = async (recipe: SavedRecipe, mealType: MealType) => {
+    await addDiaryEntry(user.uid, toISODate(new Date()), {
+      entry_id: crypto.randomUUID(),
+      meal_type: mealType,
+      description: recipe.dish.name,
+      nutrition: recipe.dish.nutrition,
+      recipe_id: recipe.recipe_id,
+      source: 'ricettario',
+      logged_at: new Date().toISOString(),
+    });
   };
 
   // Aggiorna una ricetta (rating, note, editing) su Firestore e nello stato
@@ -557,10 +572,18 @@ function App({ user }: { user: User }) {
         >
           📖 Ricettario
         </button>
+        <button
+          className={view === 'diario' ? 'active' : ''}
+          onClick={() => setView('diario')}
+        >
+          📔 Diario
+        </button>
       </nav>
 
       <main className="main-content">
-        {view === 'ricettario' ? (
+        {view === 'diario' ? (
+          <Diario uid={user.uid} selectedModel={selectedModel} />
+        ) : view === 'ricettario' ? (
           <Ricettario
             recipes={savedRecipes}
             loading={ricettarioLoading}
@@ -569,6 +592,7 @@ function App({ user }: { user: User }) {
             onGoGenerate={() => setView('genera')}
             onUpdate={handleUpdateRecipe}
             onDelete={handleDeleteRecipe}
+            onLogToDiary={handleLogToDiary}
           />
         ) : !menu ? (
           <form onSubmit={handleSubmit} className="input-form">
