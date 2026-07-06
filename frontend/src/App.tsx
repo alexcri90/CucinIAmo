@@ -4,6 +4,7 @@ import { firebase } from './firebase';
 import {
   generateMenu,
   regenerateDish,
+  parseRecipeFromText,
   computeShoppingList,
   mealCalories,
   menuCalories,
@@ -11,7 +12,13 @@ import {
   DEFAULT_MODEL,
   MEAL_LABELS,
 } from './services/aiService';
-import { saveRecipe, listRecipes, updateRecipe, deleteRecipe } from './services/recipeService';
+import {
+  saveRecipe,
+  listRecipesPage,
+  updateRecipe,
+  deleteRecipe,
+  type RecipeCursor,
+} from './services/recipeService';
 import { addDiaryEntry, toISODate } from './services/diaryService';
 import RecipeDetails from './components/RecipeDetails';
 import Ricettario, { type RecipePatch } from './components/Ricettario';
@@ -31,6 +38,9 @@ import './App.css';
 
 // Viste principali dell'app (navigazione a tab sotto l'header)
 type AppView = 'genera' | 'ricettario' | 'diario';
+
+// Ricette per pagina nel ricettario (paginazione Firestore)
+const RECIPES_PAGE_SIZE = 20;
 
 const MODEL_STORAGE_KEY = 'cuciniamo-model';
 
@@ -135,6 +145,8 @@ function App({ user }: { user: User }) {
 
   // Ricettario: null = non ancora caricato da Firestore
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[] | null>(null);
+  const [recipesCursor, setRecipesCursor] = useState<RecipeCursor | null>(null);
+  const [loadingMoreRecipes, setLoadingMoreRecipes] = useState(false);
   const [ricettarioLoading, setRicettarioLoading] = useState(false);
   const [ricettarioError, setRicettarioError] = useState<string | null>(null);
   // dish_id dei piatti salvati in questa sessione (per il feedback "✓ Salvata")
@@ -184,15 +196,17 @@ function App({ user }: { user: User }) {
     if (firebase) void signOut(firebase.auth);
   };
 
-  // Carica il ricettario da Firestore la prima volta che si apre la tab
+  // Carica la prima pagina del ricettario alla prima apertura della tab
   useEffect(() => {
     if (view !== 'ricettario' || savedRecipes !== null) return;
     let cancelled = false;
     setRicettarioLoading(true);
     setRicettarioError(null);
-    listRecipes(user.uid)
-      .then((recipes) => {
-        if (!cancelled) setSavedRecipes(recipes);
+    listRecipesPage(user.uid, RECIPES_PAGE_SIZE)
+      .then((page) => {
+        if (cancelled) return;
+        setSavedRecipes(page.recipes);
+        setRecipesCursor(page.cursor);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -206,6 +220,30 @@ function App({ user }: { user: User }) {
       cancelled = true;
     };
   }, [view, savedRecipes, user.uid]);
+
+  // Pagina successiva del ricettario
+  const handleLoadMoreRecipes = async () => {
+    if (!recipesCursor || loadingMoreRecipes) return;
+    setLoadingMoreRecipes(true);
+    setRicettarioError(null);
+    try {
+      const page = await listRecipesPage(user.uid, RECIPES_PAGE_SIZE, recipesCursor);
+      setSavedRecipes((prev) => [...(prev ?? []), ...page.recipes]);
+      setRecipesCursor(page.cursor);
+    } catch (err) {
+      setRicettarioError(err instanceof Error ? err.message : 'Errore nel caricamento delle ricette');
+    } finally {
+      setLoadingMoreRecipes(false);
+    }
+  };
+
+  // Importa nel ricettario una ricetta incollata come testo libero
+  // (Gemini la struttura nel formato Dish). Gli errori risalgono al modal.
+  const handleImportRecipe = async (text: string) => {
+    const dish = await parseRecipeFromText(text, selectedModel);
+    const recipe = await saveRecipe(user.uid, dish, null);
+    setSavedRecipes((prev) => (prev ? [recipe, ...prev] : [recipe]));
+  };
 
   // Salva un piatto del menù corrente nel ricettario
   const handleSaveDish = async (dish: Dish, mealType: MealType) => {
@@ -588,11 +626,15 @@ function App({ user }: { user: User }) {
             recipes={savedRecipes}
             loading={ricettarioLoading}
             loadError={ricettarioError}
+            hasMore={recipesCursor !== null}
+            loadingMore={loadingMoreRecipes}
+            onLoadMore={handleLoadMoreRecipes}
             onDismissLoadError={() => setRicettarioError(null)}
             onGoGenerate={() => setView('genera')}
             onUpdate={handleUpdateRecipe}
             onDelete={handleDeleteRecipe}
             onLogToDiary={handleLogToDiary}
+            onImport={handleImportRecipe}
           />
         ) : !menu ? (
           <form onSubmit={handleSubmit} className="input-form">

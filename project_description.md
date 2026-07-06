@@ -8,8 +8,8 @@
 ## 📊 Stato del Progetto
 
 **Ultimo aggiornamento:** 6 Luglio 2026
-**Versione corrente:** 1.5.0
-**Stato Roadmap v2:** tutte e 4 le fasi implementate e deployate (Fase 1 verificata manualmente; Fasi 2-4 da provare sul campo). Prossime idee: vedi "Fase 5+"
+**Versione corrente:** 1.6.0
+**Stato Roadmap v2:** tutte e 4 le fasi implementate, deployate e **verificate sul campo** ✅, più i miglioramenti post-collaudo v1.6.0 (import da testo, condivisione, paginazione, fix mobile). Prossime idee: vedi "Fase 5+"
 
 ### 🎯 Cos'è CucinIAmo
 
@@ -25,6 +25,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.6.0** | **Import, condivisione, paginazione**: import ricette da testo libero via AI (`parseRecipeFromText` + modal "📥 Importa ricetta"), condivisione ricetta col menu nativo mobile (Web Share API, fallback copia negli appunti), paginazione del ricettario (`listRecipesPage`, 20 per pagina, bottone "Carica altre"), frecce compatte nella navigazione del diario su mobile |
 | **1.5.0** | **Fase 4 Roadmap v2 — Foto→calorie**: `utils/image.ts` (compressione canvas ≤1024px JPEG), `estimateNutritionFromPhoto` (Gemini multimodale via inlineData), bottone "📸 Analizza una foto" nel modal del diario con stima correggibile e anteprima locale; la foto non viene mai salvata (`source: 'foto'`) |
 | **1.4.0** | **Fase 3 Roadmap v2 — Diario alimentare**: `diaryService.ts` (un doc per giorno su `users/{uid}/diary/{YYYY-MM-DD}`), componente `Diario.tsx` con vista giorno/mese, entry per pasto con kcal/macro, stima kcal da testo con Gemini (`estimateNutritionFromText`), budget kcal giornaliero (prefs), aggancio "L'ho cucinata!" → diario |
 | **1.3.0** | **Fase 2 Roadmap v2 — Ricettario completo**: componenti `Ricettario.tsx` + `RecipeDetails.tsx`, ricerca/filtri/ordinamento, stelle 1-5 cliccabili, flusso "✅ L'ho cucinata!" (cooked_count + rating + nota), editing della copia personale (dosi, ingredienti, passaggi, note chef, nutrizione) con badge "Modificata", note datate |
@@ -389,6 +390,15 @@ Integrata nel modal "Aggiungi al diario" (bottone "📸 Analizza una foto" accan
 - [x] Gestione errori: foto non cibo (confidence bassa, kcal 0), quota esaurita (mapAiError), file non leggibile
 
 **Criterio di completamento:** fotografo un piatto di pasta col telefono, ottengo una stima kcal plausibile, la correggo e la salvo nel diario di oggi.
+
+### 🔁 Miglioramenti post-roadmap (v1.6.0) ✅ IMPLEMENTATI
+
+Richiesti dopo il collaudo sul campo della Roadmap v2:
+
+- [x] **📥 Import ricette da testo libero**: l'utente incolla una ricetta appuntata altrove e `parseRecipeFromText` (Gemini, stessa pipeline JSON→normalizzazione) la struttura in un `Dish` completo, salvato con `source: null`; sempre correggibile poi con l'editing ✏️
+- [x] **📤 Condivisione ricetta**: bottone sulla card che apre il menu nativo di condivisione su mobile (Web Share API → WhatsApp, Telegram, ...); dove non disponibile (desktop) copia il testo formattato negli appunti con feedback "✅ Copiata!"
+- [x] **⚡ Paginazione ricettario**: `listRecipesPage` con `orderBy(saved_at) + limit(20) + startAfter(cursore)`; bottone "⬇️ Carica altre ricette". Nota: ricerca e filtri agiscono client-side sulle ricette caricate (hint in UI quando ci sono altre pagine)
+- [x] **📱 Fix nav diario su mobile**: frecce ‹ › compatte (classe dedicata `.diario-arrow`, esclusa dalla regola mobile `.action-button { width: 100% }`) affiancate al date picker
 
 ### Fase 5+ — Oltre la roadmap (non pianificate)
 

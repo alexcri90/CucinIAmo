@@ -23,12 +23,18 @@ interface RicettarioProps {
   recipes: SavedRecipe[] | null;
   loading: boolean;
   loadError: string | null;
+  /** True se su Firestore ci sono altre pagine di ricette. */
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => Promise<void>;
   onDismissLoadError: () => void;
   onGoGenerate: () => void;
   onUpdate: (recipeId: string, patch: RecipePatch) => Promise<void>;
   onDelete: (recipe: SavedRecipe) => Promise<void>;
   /** Registra la ricetta cucinata nel diario di oggi (Fase 3). */
   onLogToDiary: (recipe: SavedRecipe, mealType: MealType) => Promise<void>;
+  /** Importa una ricetta da testo libero via AI (lancia in caso di errore). */
+  onImport: (text: string) => Promise<void>;
 }
 
 const MEAL_EMOJI: Record<MealType, string> = {
@@ -164,6 +170,64 @@ const NoteModal = ({
             disabled={!note.trim()}
           >
             Salva nota
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Modal import ricetta da testo (via AI) ───────────────────────
+const ImportModal = ({
+  onClose,
+  onImport,
+}: {
+  onClose: () => void;
+  onImport: (text: string) => Promise<void>;
+}) => {
+  const [text, setText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleImport = async () => {
+    if (!text.trim() || importing) return;
+    setImporting(true);
+    setError(null);
+    try {
+      await onImport(text);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nell'importazione della ricetta");
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={importing ? undefined : onClose}>
+      <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} disabled={importing}>×</button>
+        <h3>📥 Importa una ricetta</h3>
+        <p className="modal-subtitle">
+          Incolla il testo di una ricetta che hai appuntato altrove: l'AI la struttura
+          con ingredienti, passaggi e valori nutrizionali stimati. Potrai poi correggerla con ✏️.
+        </p>
+        <textarea
+          className="feedback-textarea import-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={'Es:\nTorta di mele della nonna\n3 mele, 200g farina, 2 uova, 150g zucchero...\nMescolare le uova con lo zucchero, poi...'}
+          rows={10}
+          maxLength={6000}
+          disabled={importing}
+          autoFocus
+        />
+        {error && <p className="estimate-note error">❌ {error}</p>}
+        <div className="modal-actions">
+          <button className="modal-btn secondary" onClick={onClose} disabled={importing}>
+            Annulla
+          </button>
+          <button className="modal-btn primary" onClick={() => void handleImport()} disabled={!text.trim() || importing}>
+            {importing ? 'Importo…' : '✨ Importa con AI'}
           </button>
         </div>
       </div>
@@ -333,16 +397,43 @@ const EditModal = ({
   );
 };
 
+// ── Testo condivisibile di una ricetta (WhatsApp/Telegram/appunti) ──
+const buildShareText = (recipe: SavedRecipe): string => {
+  const d = recipe.dish;
+  const n = d.nutrition;
+  const lines = [
+    `🍅 ${d.name}`,
+    d.description,
+    '',
+    `🌍 Cucina ${d.cuisine} · 🔥 ~${n.calories} kcal/porzione (P ${n.protein_g}g · C ${n.carbs_g}g · G ${n.fat_g}g)`,
+    `⏱️ ${d.recipe.prep_time_minutes + d.recipe.cook_time_minutes} min · 📊 ${d.recipe.difficulty}`,
+    '',
+    '🥕 Ingredienti:',
+    ...d.recipe.ingredients.map((i) => `• ${i.quantity} ${i.name}`),
+    '',
+    '👨‍🍳 Procedimento:',
+    ...d.recipe.steps.map((s, i) => `${i + 1}. ${s}`),
+    ...(d.recipe.chef_notes ? ['', `💡 ${d.recipe.chef_notes}`] : []),
+    '',
+    '— condivisa da CucinIAmo 🍳',
+  ];
+  return lines.join('\n');
+};
+
 // ── Componente principale ────────────────────────────────────────
 const Ricettario = ({
   recipes,
   loading,
   loadError,
+  hasMore,
+  loadingMore,
+  onLoadMore,
   onDismissLoadError,
   onGoGenerate,
   onUpdate,
   onDelete,
   onLogToDiary,
+  onImport,
 }: RicettarioProps) => {
   const [search, setSearch] = useState('');
   const [filterMeal, setFilterMeal] = useState<MealType | 'tutti'>('tutti');
@@ -355,6 +446,31 @@ const Ricettario = ({
   const [cookedModal, setCookedModal] = useState<SavedRecipe | null>(null);
   const [noteModal, setNoteModal] = useState<SavedRecipe | null>(null);
   const [editModal, setEditModal] = useState<SavedRecipe | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  // Feedback "copiata negli appunti" (fallback quando manca navigator.share)
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Condivide la ricetta col menu nativo (mobile); altrimenti copia negli appunti
+  const handleShare = async (recipe: SavedRecipe) => {
+    const text = buildShareText(recipe);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: recipe.dish.name, text });
+        return;
+      } catch (err) {
+        // Utente ha annullato la condivisione: nessun errore da mostrare
+        if (err instanceof Error && err.name === 'AbortError') return;
+        // Altri errori: si tenta il fallback appunti
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(recipe.recipe_id);
+      setTimeout(() => setCopiedId((prev) => (prev === recipe.recipe_id ? null : prev)), 2500);
+    } catch {
+      setActionError('Impossibile copiare negli appunti su questo browser.');
+    }
+  };
 
   const cuisines = useMemo(() => {
     const set = new Set((recipes ?? []).map((r) => r.dish.cuisine.toLowerCase()));
@@ -426,7 +542,12 @@ const Ricettario = ({
     <div className="ricettario">
       <div className="menu-header">
         <h2>📖 Il tuo ricettario</h2>
-        <p>Le ricette che hai salvato: valuta, modifica, annota</p>
+        <p>Le ricette che hai salvato: valuta, modifica, annota, condividi</p>
+        <div className="menu-actions">
+          <button className="action-button primary" onClick={() => setImportOpen(true)}>
+            📥 Importa ricetta
+          </button>
+        </div>
       </div>
 
       {(loadError || actionError) && (
@@ -447,8 +568,14 @@ const Ricettario = ({
         <div className="ricettario-empty">
           <p className="ricettario-empty-emoji">🍳</p>
           <h3>Il tuo ricettario è vuoto</h3>
-          <p>Genera un menù e salva i piatti che ti piacciono col bottone 💾: li ritroverai qui.</p>
-          <button className="action-button primary" onClick={onGoGenerate}>✨ Genera un menù</button>
+          <p>
+            Genera un menù e salva i piatti che ti piacciono col bottone 💾,
+            oppure importa una ricetta che hai appuntato altrove.
+          </p>
+          <div className="menu-actions">
+            <button className="action-button primary" onClick={onGoGenerate}>✨ Genera un menù</button>
+            <button className="action-button" onClick={() => setImportOpen(true)}>📥 Importa ricetta</button>
+          </div>
         </div>
       )}
 
@@ -546,6 +673,14 @@ const Ricettario = ({
                 <button className="action-button" onClick={() => setNoteModal(recipe)} disabled={busy}>
                   📝 Nuova nota
                 </button>
+                <button
+                  className="action-button"
+                  onClick={() => void handleShare(recipe)}
+                  disabled={busy}
+                  title="Condividi via WhatsApp, Telegram... o copia negli appunti"
+                >
+                  {copiedId === recipe.recipe_id ? '✅ Copiata negli appunti!' : '📤 Condividi'}
+                </button>
               </div>
 
               <RecipeDetails dish={recipe.dish} />
@@ -567,6 +702,22 @@ const Ricettario = ({
         })}
       </div>
 
+      {hasMore && !loading && (
+        <div className="load-more-row">
+          <button className="action-button" onClick={() => void onLoadMore()} disabled={loadingMore}>
+            {loadingMore ? 'Carico…' : '⬇️ Carica altre ricette'}
+          </button>
+          {(search.trim() !== '' || filterMeal !== 'tutti' || filterCuisine !== 'tutte' || filterStatus !== 'tutte') && (
+            <p className="load-more-hint">
+              Ricerca e filtri agiscono solo sulle ricette già caricate: carica le altre per includerle.
+            </p>
+          )}
+        </div>
+      )}
+
+      {importOpen && (
+        <ImportModal onClose={() => setImportOpen(false)} onImport={onImport} />
+      )}
       {cookedModal && (
         <CookedModal
           recipe={cookedModal}

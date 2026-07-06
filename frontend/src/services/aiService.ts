@@ -714,6 +714,77 @@ export async function regenerateDish(
 }
 
 // ─────────────────────────────────────────────────────────────────
+// IMPORT RICETTA DA TESTO LIBERO (ricettario)
+// L'utente incolla una ricetta appuntata altrove; Gemini la
+// struttura nel formato Dish del ricettario.
+// ─────────────────────────────────────────────────────────────────
+
+const DISH_JSON_EXAMPLE = `{
+  "name": "...",
+  "cuisine": "...",
+  "role": "...",
+  "description": "...",
+  "nutrition": {"calories": 350, "protein_g": 20, "carbs_g": 40, "fat_g": 12},
+  "recipe": {
+    "ingredients": [{"name": "...", "quantity": "...", "category": "..."}],
+    "prep_time_minutes": 30,
+    "cook_time_minutes": 30,
+    "difficulty": "facile",
+    "steps": ["..."],
+    "chef_notes": "...",
+    "can_prep_ahead": false,
+    "prep_ahead_timing": null
+  }
+}`;
+
+/**
+ * Converte il testo libero di una ricetta (incollato dall'utente)
+ * in un Dish strutturato per il ricettario.
+ */
+export async function parseRecipeFromText(text: string, modelId: string): Promise<Dish> {
+  const model = getModel(modelId, CHEF_SYSTEM_PROMPT, 0.3);
+  const prompt = `
+Trascrivi questa ricetta (testo libero appuntato da un utente) nel formato JSON strutturato indicato sotto.
+
+═══════════════════════════════════════════════════════════════════════════════
+                         TESTO DELLA RICETTA
+═══════════════════════════════════════════════════════════════════════════════
+
+"""
+${text.trim()}
+"""
+
+═══════════════════════════════════════════════════════════════════════════════
+                              REGOLE
+═══════════════════════════════════════════════════════════════════════════════
+
+1. NON inventare ingredienti o passaggi non presenti nel testo; riorganizza e pulisci quello che c'è
+2. Se una quantità manca, usa "q.b."; se i passaggi sono discorsivi, spezzali in step numerabili
+3. Stima tu in modo realistico ciò che il testo non dice: nutrition (PER PORZIONE), prep/cook time, difficulty, cuisine, role (es. "Piatto unico", "Dolce", "Antipasto"), description (2 righe appetitose)
+4. Le CATEGORIE valide per gli ingredienti sono SOLO: "Frutta e verdura", "Carne", "Pesce", "Latticini", "Dispensa", "Altro"
+5. difficulty può essere solo: "facile", "medio", "avanzato"
+6. Se il testo contiene consigli/trucchi, mettili in chef_notes
+7. Se il testo NON sembra una ricetta, restituisci comunque il JSON usando come name "Testo non riconosciuto come ricetta" e spiegando nella description
+
+Struttura JSON richiesta (rispondi SOLO con il JSON, senza markdown):
+${DISH_JSON_EXAMPLE}
+`;
+
+  let responseText: string;
+  try {
+    const result = await model.generateContent(prompt);
+    responseText = result.response.text();
+  } catch (error) {
+    throw mapAiError(error);
+  }
+
+  const raw = parseJsonResponse(responseText);
+  // Nota: niente fallback su raw.recipe (in un Dish valido è il campo interno)
+  const dishData = raw?.name ? raw : raw?.dish ?? raw;
+  return normalizeDish(dishData);
+}
+
+// ─────────────────────────────────────────────────────────────────
 // STIMA NUTRIZIONALE (diario alimentare)
 // Da descrizione testuale o da foto del piatto. Come per i menù,
 // sono STIME dell'LLM: ordine di grandezza, non valori da database.

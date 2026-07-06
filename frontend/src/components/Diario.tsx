@@ -408,13 +408,16 @@ const Diario = ({ uid, selectedModel }: DiarioProps) => {
         )}
 
         <div className="diario-nav">
-          <button className="action-button" onClick={() => setMonth((m) => shiftMonth(m, -1))}>‹</button>
-          <span className="diario-current-date">{formatMonth(month)}</span>
-          <button
-            className="action-button"
-            onClick={() => setMonth((m) => shiftMonth(m, 1))}
-            disabled={month >= today.slice(0, 7)}
-          >›</button>
+          <div className="diario-nav-dates">
+            <button className="diario-arrow" onClick={() => setMonth((m) => shiftMonth(m, -1))} title="Mese precedente">‹</button>
+            <span className="diario-current-date">{formatMonth(month)}</span>
+            <button
+              className="diario-arrow"
+              onClick={() => setMonth((m) => shiftMonth(m, 1))}
+              disabled={month >= today.slice(0, 7)}
+              title="Mese successivo"
+            >›</button>
+          </div>
           <button className="action-button" onClick={() => setMonthMode(false)}>📅 Vista giorno</button>
         </div>
 
@@ -477,15 +480,22 @@ const Diario = ({ uid, selectedModel }: DiarioProps) => {
       )}
 
       <div className="diario-nav">
-        <button className="action-button" onClick={() => setDate((d) => shiftDate(d, -1))}>‹</button>
-        <input
-          type="date"
-          className="diario-date-input"
-          value={date}
-          max={today}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-        />
-        <button className="action-button" onClick={() => setDate((d) => shiftDate(d, 1))} disabled={date >= today}>›</button>
+        <div className="diario-nav-dates">
+          <button className="diario-arrow" onClick={() => setDate((d) => shiftDate(d, -1))} title="Giorno precedente">‹</button>
+          <input
+            type="date"
+            className="diario-date-input"
+            value={date}
+            max={today}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+          />
+          <button
+            className="diario-arrow"
+            onClick={() => setDate((d) => shiftDate(d, 1))}
+            disabled={date >= today}
+            title="Giorno successivo"
+          >›</button>
+        </div>
         {date !== today && (
           <button className="action-button" onClick={() => setDate(today)}>Oggi</button>
         )}

@@ -1708,6 +1708,28 @@
   background: #fdecec;
 }
 
+/* ─── Carica altre ricette (paginazione) ─── */
+.load-more-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.load-more-hint {
+  font-size: 12.5px;
+  color: var(--mist);
+  text-align: center;
+  margin: 0;
+}
+
+/* ─── Import ricetta da testo ─── */
+.import-textarea {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
 /* ─── Toolbar: ricerca, filtri, ordinamento ─── */
 .ricettario-toolbar {
   display: flex;
@@ -1970,6 +1992,37 @@
   background: var(--surface);
   border: 1.5px solid var(--border-input);
   border-radius: var(--radius-input);
+}
+
+/* Gruppo ‹ data › : le frecce restano compatte anche su mobile
+   (la regola mobile .action-button { width: 100% } non le tocca) */
+.diario-nav-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diario-arrow {
+  width: 42px;
+  height: 41px;
+  flex: 0 0 42px;
+  font: 600 18px var(--font-ui);
+  color: var(--body);
+  background: var(--surface);
+  border: 1.5px solid var(--border-input);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.diario-arrow:hover:not(:disabled) {
+  border-color: var(--brand-magenta);
+  color: var(--brand-ink);
+}
+
+.diario-arrow:disabled {
+  color: var(--faint);
+  cursor: default;
 }
 
 .diario-current-date {

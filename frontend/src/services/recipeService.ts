@@ -16,10 +16,14 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  limit,
   orderBy,
   query,
   setDoc,
+  startAfter,
   updateDoc,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { firebase } from '../firebase';
 import type { Dish, MealType, SavedRecipe } from '../types';
@@ -61,11 +65,33 @@ export async function saveRecipe(
   return recipe;
 }
 
-/** Tutte le ricette salvate, dalla più recente. */
-export async function listRecipes(uid: string): Promise<SavedRecipe[]> {
-  const q = query(recipesCollection(uid), orderBy('saved_at', 'desc'));
+/** Cursore opaco per la paginazione del ricettario. */
+export type RecipeCursor = QueryDocumentSnapshot<DocumentData>;
+
+export interface RecipePage {
+  recipes: SavedRecipe[];
+  /** Cursore per la pagina successiva; null se non ci sono altre ricette. */
+  cursor: RecipeCursor | null;
+}
+
+/**
+ * Una pagina di ricette, dalla più recente. La paginazione tiene
+ * veloci sia il caricamento sia i costi di lettura quando il
+ * ricettario cresce (decine/centinaia di ricette).
+ */
+export async function listRecipesPage(
+  uid: string,
+  pageSize: number,
+  after: RecipeCursor | null = null
+): Promise<RecipePage> {
+  const q = after
+    ? query(recipesCollection(uid), orderBy('saved_at', 'desc'), startAfter(after), limit(pageSize))
+    : query(recipesCollection(uid), orderBy('saved_at', 'desc'), limit(pageSize));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => d.data() as SavedRecipe);
+  return {
+    recipes: snapshot.docs.map((d) => d.data() as SavedRecipe),
+    cursor: snapshot.docs.length === pageSize ? snapshot.docs[snapshot.docs.length - 1] : null,
+  };
 }
 
 /**
