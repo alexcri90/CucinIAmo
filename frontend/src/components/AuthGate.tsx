@@ -14,14 +14,25 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { firebase, isFirebaseConfigured } from '../firebase';
+
+// ── Rilevamento PWA installata (modalità standalone) ─────────────
+// Su iOS in standalone il popup di login non si apre correttamente:
+// in quel caso usiamo il flusso a redirect (pagina intera).
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  (navigator as { standalone?: boolean }).standalone === true;
+
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 type AuthStatus = 'loading' | 'signed-out' | 'checking' | 'allowed' | 'denied';
 
@@ -66,11 +77,28 @@ const AuthGate = ({ children }: AuthGateProps) => {
     return unsubscribe;
   }, []);
 
+  // Se il login è avvenuto via redirect (PWA su iOS), qui intercettiamo
+  // gli eventuali errori al ritorno; il successo lo gestisce già
+  // onAuthStateChanged qui sopra.
+  useEffect(() => {
+    if (!firebase) return;
+    getRedirectResult(firebase.auth).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Errore durante il login: ${msg}`);
+    });
+  }, []);
+
   const handleSignIn = async () => {
     if (!firebase) return;
     setError(null);
     try {
-      await signInWithPopup(firebase.auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      if (isIOS() && isStandalone()) {
+        // PWA installata su iPhone/iPad: flusso a redirect
+        await signInWithRedirect(firebase.auth, provider);
+        return;
+      }
+      await signInWithPopup(firebase.auth, provider);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/popup.*closed/i.test(msg)) return; // utente ha chiuso il popup

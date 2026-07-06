@@ -28,6 +28,7 @@ import type {
   MenuOutput,
   Meal,
   MealType,
+  CourseType,
   Dish,
   DietaryRestriction,
   DifficultyLevel,
@@ -108,11 +109,8 @@ const RegenerateModal = ({
 // Cucine popolari proposte come chip; qualsiasi altra si aggiunge
 // dal campo di testo libero
 const SUGGESTED_CUISINES = [
-  'italiana', 'francese', 'spagnola', 'greca', 'mediterranea',
-  'cinese', 'giapponese', 'thailandese', 'vietnamita', 'coreana',
-  'indiana', 'mediorientale', 'turca', 'marocchina',
-  'messicana', 'peruviana', 'brasiliana', 'americana',
-  'tedesca', 'inglese', 'scandinava', 'polacca', 'fusion',
+  'italiana', 'spagnola', 'mediterranea',
+  'cinese', 'giapponese', 'indiana', 'peruviana',
 ];
 
 const MEAL_OPTIONS: { value: MealType; label: string }[] = [
@@ -128,6 +126,17 @@ const MEAL_EMOJI: Record<MealType, string> = {
   cena: '🍽️',
   spuntino: '🍎',
 };
+
+// Pasti per cui si possono scegliere le portate esatte
+const COURSE_MEALS: MealType[] = ['pranzo', 'cena'];
+
+const COURSE_OPTIONS: { value: CourseType; label: string }[] = [
+  { value: 'antipasto', label: '🥟 Antipasto' },
+  { value: 'primo', label: '🍜 Primo' },
+  { value: 'secondo', label: '🍖 Secondo' },
+  { value: 'contorno', label: '🥗 Contorno' },
+  { value: 'dolce', label: '🍰 Dolce' },
+];
 
 const DIETARY_OPTIONS: { value: DietaryRestriction; label: string }[] = [
   { value: 'vegetariano', label: '🥬 Vegetariano' },
@@ -166,6 +175,7 @@ function App({ user }: { user: User }) {
   const [formData, setFormData] = useState<UserInput>({
     num_people: 2,
     meal_types: ['cena'],
+    courses: {},
     cuisines: ['italiana'],
     preferred_ingredients: [],
     avoided_ingredients: [],
@@ -376,16 +386,46 @@ function App({ user }: { user: User }) {
   const customCuisines = formData.cuisines.filter(c => !SUGGESTED_CUISINES.includes(c));
 
   const toggleMeal = (meal: MealType) => {
-    setFormData(prev => ({
-      ...prev,
-      meal_types: prev.meal_types.includes(meal)
-        ? prev.meal_types.filter(m => m !== meal)
-        : [...prev.meal_types, meal]
-    }));
+    setFormData(prev => {
+      const isSelected = prev.meal_types.includes(meal);
+      // Deselezionare un pasto azzera anche le sue portate scelte
+      const courses = { ...prev.courses };
+      if (isSelected) delete courses[meal];
+      return {
+        ...prev,
+        meal_types: isSelected
+          ? prev.meal_types.filter(m => m !== meal)
+          : [...prev.meal_types, meal],
+        courses,
+      };
+    });
   };
 
   const selectFullDay = () => {
     setFormData(prev => ({ ...prev, meal_types: ['colazione', 'pranzo', 'cena'] }));
+  };
+
+  // Toggle di una portata per pranzo/cena; senza portate = decide lo chef
+  const toggleCourse = (meal: MealType, course: CourseType) => {
+    setFormData(prev => {
+      const current = prev.courses[meal] ?? [];
+      const next = current.includes(course)
+        ? current.filter(c => c !== course)
+        : [...current, course];
+      const courses = { ...prev.courses };
+      if (next.length === 0) delete courses[meal];
+      else courses[meal] = next;
+      return { ...prev, courses };
+    });
+  };
+
+  // "🤖 Decide lo chef": rimuove tutte le portate scelte per il pasto
+  const clearCourses = (meal: MealType) => {
+    setFormData(prev => {
+      const courses = { ...prev.courses };
+      delete courses[meal];
+      return { ...prev, courses };
+    });
   };
 
   const toggleDietary = (restriction: DietaryRestriction) => {
@@ -680,6 +720,44 @@ function App({ user }: { user: User }) {
                   ☀️ Giornata intera
                 </button>
               </div>
+
+              {/* Composizione portate: solo per pranzo/cena selezionati */}
+              {COURSE_MEALS.filter(meal => formData.meal_types.includes(meal)).map(meal => {
+                const selectedCourses = formData.courses[meal] ?? [];
+                const chefDecides = selectedCourses.length === 0;
+                return (
+                  <div key={meal} className="meal-courses">
+                    <p className="meal-courses-title">
+                      {MEAL_EMOJI[meal]} Come componiamo {meal === 'pranzo' ? 'il pranzo' : 'la cena'}?
+                    </p>
+                    <div className="chip-container centered">
+                      <button
+                        type="button"
+                        className={`chip bounce-btn course-chip ${chefDecides ? 'selected' : ''}`}
+                        onClick={() => clearCourses(meal)}
+                        title="Il modello sceglie le portate in base al contesto"
+                      >
+                        🤖 Decide lo chef
+                      </button>
+                      {COURSE_OPTIONS.map(option => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`chip bounce-btn course-chip ${selectedCourses.includes(option.value) ? 'selected' : ''}`}
+                          onClick={() => toggleCourse(meal, option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    {!chefDecides && (
+                      <p className="meal-courses-hint">
+                        Verranno generati esattamente {selectedCourses.length === 1 ? 'questo piatto' : `questi ${selectedCourses.length} piatti`}, niente di più
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="form-section">

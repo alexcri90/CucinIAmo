@@ -345,6 +345,34 @@
   box-shadow: var(--shadow-brand-sm);
 }
 
+/* ─── Composizione portate di pranzo/cena ─── */
+.meal-courses {
+  margin-top: 16px;
+  padding: 14px 16px 12px;
+  border: 1.5px dashed var(--divider);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+}
+
+.meal-courses-title {
+  margin: 0 0 10px;
+  font: 600 14px var(--font-ui);
+  color: var(--body);
+  text-align: center;
+}
+
+.meal-courses .chip.course-chip {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.meal-courses-hint {
+  margin: 10px 0 0;
+  font: 400 12px var(--font-ui);
+  color: var(--mist);
+  text-align: center;
+}
+
 /* ─── Campi di input ─── */
 .ingredient-input {
   display: flex;
@@ -386,6 +414,12 @@
   transition: var(--transition);
 }
 
+/* Campo "Aggiungi un'altra cucina...": respira rispetto alle chip sopra */
+.custom-cuisine-input {
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
 /* ─── Doppio pannello ingredienti ─── */
 .ingredients-dual {
   display: grid;
@@ -415,9 +449,8 @@
   box-shadow: 0 0 0 4px rgba(243, 112, 77, 0.12);
 }
 
-.ingredient-column.avoid .ingredient-input button {
-  background: var(--brand-corallo);
-}
+/* Il bottone "+" usa il gradiente brand come tutti gli altri: l'identità
+   "evitare" resta affidata al focus corallo dell'input e ai tag. */
 
 /* ─── Tag ingredienti ─── */
 .ingredients-list {

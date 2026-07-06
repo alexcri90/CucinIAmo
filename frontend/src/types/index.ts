@@ -19,10 +19,19 @@ export type BudgetLevel = "economico" | "medio" | "premium";
 // della giornata in un unico blocco.
 export type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 
+// Portate selezionabili per pranzo e cena (colazione e spuntini
+// hanno già una struttura leggera decisa dal modello).
+export type CourseType = "antipasto" | "primo" | "secondo" | "contorno" | "dolce";
+
+/** Portate richieste per pasto. Pasto assente (o lista vuota) = decide lo chef. */
+export type MealCourses = Partial<Record<MealType, CourseType[]>>;
+
 export interface UserInput {
   num_people: number;
   /** Pasti da generare (almeno uno). Tutti e tre i principali = giornata intera. */
   meal_types: MealType[];
+  /** Composizione di pranzo/cena: portate esatte da generare; pasto assente = decide lo chef. */
+  courses: MealCourses;
   /** Cucine di ispirazione: testo libero (es. "thailandese", "pugliese"). */
   cuisines: string[];
   preferred_ingredients: string[];

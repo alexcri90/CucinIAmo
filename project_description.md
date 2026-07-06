@@ -8,8 +8,8 @@
 ## 📊 Stato del Progetto
 
 **Ultimo aggiornamento:** 6 Luglio 2026
-**Versione corrente:** 1.6.0
-**Stato Roadmap v2:** tutte e 4 le fasi implementate, deployate e **verificate sul campo** ✅, più i miglioramenti post-collaudo v1.6.0 (import da testo, condivisione, paginazione, fix mobile). Prossime idee: vedi "Fase 5+"
+**Versione corrente:** 1.8.0
+**Stato Roadmap v2:** tutte e 4 le fasi implementate, deployate e **verificate sul campo** ✅, più i miglioramenti post-collaudo v1.6.0 (import da testo, condivisione, paginazione, fix mobile), la **PWA installabile** v1.7.0 e la **composizione dei pasti a portate scelte** v1.8.0. Prossime idee: vedi "Fase 5+"
 
 ### 🎯 Cos'è CucinIAmo
 
@@ -17,7 +17,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 1. **Niente più tema natalizio**: piatti per tutto l'anno, per qualunque occasione
 2. **Cucine libere**: ~23 cucine suggerite come chip + campo di testo libero per aggiungerne qualsiasi altra ("vietnamita", "pugliese", "fusion nikkei"...)
-3. **Scelta dei pasti**: colazione, pranzo, cena, spuntini, in qualunque combinazione — incluso il preset "Giornata intera"
+3. **Scelta dei pasti**: colazione, pranzo, cena, spuntini, in qualunque combinazione — incluso il preset "Giornata intera"; per pranzo e cena si può anche scegliere **quali portate** generare (v1.8.0: "Decide lo chef" oppure una selezione esatta tra antipasto, primo, secondo, contorno, dolce)
 4. **Limite calorie opzionale**: budget di kcal per persona sull'insieme dei pasti richiesti (es. 1700 kcal per la giornata, 400 per una colazione); ogni piatto riporta kcal e macro stimate per porzione e i totali sono ricalcolati client-side
 5. **Design system dedicato** (v1.1.0): gradiente brand viola→magenta→corallo→arancio, logo a pomodoro, font Space Grotesk + Instrument Sans, neutri caldi — definito nella cartella `CucinIAmo design system/` e applicato a tutta l'app
 
@@ -25,6 +25,8 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.8.0** | **Composizione dei pasti a portate scelte**: per pranzo e cena l'utente può scegliere le portate esatte da generare (chip Antipasto/Primo/Secondo/Contorno/Dolce) oppure lasciare "🤖 Decide lo chef" (comportamento precedente); nuovo tipo `CourseType` + campo `courses` in `UserInput`, prompt con vincolo "ESATTAMENTE queste portate, nessun piatto in più" |
+| **1.7.0** | **PWA installabile + ritocchi form**: `vite-plugin-pwa` (manifest, service worker `autoUpdate`, precache + runtime caching Google Fonts, esclusione `/__/auth/*`), icone PWA generate dal logo (192/512/maskable/apple-touch), login a redirect per PWA standalone su iOS (`signInWithRedirect` + `getRedirectResult` in AuthGate) con `authDomain` spostato su `cuciniamo-ricette.web.app` (stesso dominio del sito, richiesto da Safari); form Genera: cucine suggerite ridotte a 7, respiro sopra il campo "Aggiungi un'altra cucina", bottone "+" di "Cosa evitare" allineato al gradiente brand |
 | **1.6.0** | **Import, condivisione, paginazione**: import ricette da testo libero via AI (`parseRecipeFromText` + modal "📥 Importa ricetta"), condivisione ricetta col menu nativo mobile (Web Share API, fallback copia negli appunti), paginazione del ricettario (`listRecipesPage`, 20 per pagina, bottone "Carica altre"), frecce compatte nella navigazione del diario su mobile |
 | **1.5.0** | **Fase 4 Roadmap v2 — Foto→calorie**: `utils/image.ts` (compressione canvas ≤1024px JPEG), `estimateNutritionFromPhoto` (Gemini multimodale via inlineData), bottone "📸 Analizza una foto" nel modal del diario con stima correggibile e anteprima locale; la foto non viene mai salvata (`source: 'foto'`) |
 | **1.4.0** | **Fase 3 Roadmap v2 — Diario alimentare**: `diaryService.ts` (un doc per giorno su `users/{uid}/diary/{YYYY-MM-DD}`), componente `Diario.tsx` con vista giorno/mese, entry per pasto con kcal/macro, stima kcal da testo con Gemini (`estimateNutritionFromText`), budget kcal giornaliero (prefs), aggancio "L'ho cucinata!" → diario |
@@ -135,6 +137,8 @@ c:\Users\alexc\Local Github\P4B\CucinIAmo\
 
 ```typescript
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
+type CourseType = "antipasto" | "primo" | "secondo" | "contorno" | "dolce";  // v1.8.0
+type MealCourses = Partial<Record<MealType, CourseType[]>>;                  // v1.8.0
 type DietaryRestriction = "vegetariano" | "vegano" | "senza_glutine" | "senza_lattosio";
 type DifficultyLevel = "facile" | "medio" | "avanzato";
 type BudgetLevel = "economico" | "medio" | "premium";
@@ -142,6 +146,7 @@ type BudgetLevel = "economico" | "medio" | "premium";
 interface UserInput {
   num_people: number;              // 1-50
   meal_types: MealType[];          // almeno uno; colazione+pranzo+cena = giornata intera
+  courses: MealCourses;            // v1.8.0: portate esatte per pranzo/cena; pasto assente = decide lo chef
   cuisines: string[];              // TESTO LIBERO (non più enum!)
   preferred_ingredients: string[];
   avoided_ingredients: string[];
@@ -180,6 +185,7 @@ interface MenuOutput {
 Note di design:
 - **`cuisines` è testo libero**: il vecchio enum di 9 paesi è stato eliminato; la UI propone chip suggerite (`SUGGESTED_CUISINES` in App.tsx) ma accetta qualsiasi stringa
 - **`role` è una stringa libera**: la struttura del pasto non è più fissa (antipasto/primo/secondo/contorno/dessert); il prompt dà linee guida per pasto (colazione 2-4 voci, cena 1-4 piatti a seconda del contesto, ecc.) e il modello decide
+- **`courses` (v1.8.0) rende opzionale quel "decide il modello"**: se per un pranzo/cena l'utente ha scelto delle portate, il prompt le impone come elenco esatto (un piatto per portata, `role` = nome della portata, nessun piatto in più); se il pasto non è presente in `courses` vale la linea guida libera di prima. Colazione e spuntini non hanno portate (struttura già leggera)
 - **`meal_type` invece è un enum chiuso**: serve per raggruppare, ordinare e rigenerare in modo affidabile
 
 ---
@@ -254,6 +260,12 @@ Con Vite/React usare sempre `import type { ... }` per i tipi, altrimenti in alcu
 ### 7. Non fidarsi dei totali calcolati dall'LLM
 Somme di calorie e lista spesa aggregata possono essere sbagliate: si ricalcolano client-side.
 
+### 8. PWA su iOS: login solo con redirect e authDomain = dominio del sito
+In una PWA standalone su iOS `signInWithPopup` non funziona: serve `signInWithRedirect`. Ma il redirect fallisce se `authDomain` (`*.firebaseapp.com`) è diverso dal dominio del sito (`*.web.app`): Safari partiziona lo storage cross-dominio. Soluzione: `VITE_FIREBASE_AUTH_DOMAIN` deve puntare al dominio di hosting (`cuciniamo-ricette.web.app`) — il gestore `/__/auth/*` è servito da Firebase Hosting su entrambi i domini. Inoltre il service worker NON deve intercettare `/__/*` (`navigateFallbackDenylist` in vite.config.ts).
+
+### 9. Cambiare authDomain richiede di registrare il redirect URI nel client OAuth
+Scoperto sul campo dopo il deploy v1.7.0: il client OAuth che Firebase crea automaticamente su Google Cloud autorizza solo `https://PROJECT.firebaseapp.com/__/auth/handler`. Spostando `authDomain` su `*.web.app` (lesson 8), OGNI login "fresco" (incognito, nuovo dispositivo, PWA) fallisce con **Errore 400: redirect_uri_mismatch** — chi era già loggato non se ne accorge, perché la sessione persistita non rifà il giro OAuth. Fix: Google Cloud Console → APIs & Services → Credentials → "Web client (auto created by Google Service)" → aggiungere `https://cuciniamo-ricette.web.app/__/auth/handler` agli **Authorized redirect URIs** (e il dominio alle Authorized JavaScript origins). Gratuito, propagazione in pochi minuti. Morale: dopo un cambio di authDomain, testare SEMPRE il login in incognito, non solo con la sessione esistente.
+
 ---
 
 ## 🗺️ Roadmap v2 — Ricettario, Diario, Foto→Calorie
@@ -265,7 +277,7 @@ Somme di calorie e lista spesa aggregata possono essere sbagliate: si ricalcolan
 Due fatti scoperti in fase di pianificazione che modellano tutta la roadmap:
 
 1. **Cloud Storage for Firebase NON è più gratuito** sui nuovi progetti Spark (da ottobre 2024 richiede il piano Blaze anche per il bucket di default). Conseguenza: **le foto dei piatti non vengono mai salvate**. Per la feature foto→calorie l'immagine viene compressa client-side, inviata a Gemini (multimodale, già incluso nel free tier di Firebase AI Logic) e si persiste su Firestore **solo la stima testuale/numerica**. Opzionale: una miniatura molto compressa (~100-200 KB) come stringa base64 dentro il documento Firestore (limite 1 MiB/doc), da valutare solo se davvero utile.
-2. **Pubblicare una app "vera" negli store costa** (Apple Developer $99/anno; Google Play $25 una tantum). La strada gratuita per iPhone e Android sarebbe la **PWA** (manifest + service worker, installabile dalla home screen, fotocamera via `<input capture>`). Decisione del 6 Luglio 2026: **per ora si resta web app e basta** — la PWA è spostata tra le idee future (vedi tabella in fondo). Nota bene: tutto il resto della roadmap funziona comunque perfettamente dal browser del telefono, foto comprese.
+2. **Pubblicare una app "vera" negli store costa** (Apple Developer $99/anno; Google Play $25 una tantum). La strada gratuita per iPhone e Android è la **PWA** (manifest + service worker, installabile dalla home screen, fotocamera via `<input capture>`). Inizialmente rimandata (decisione del 6 Luglio 2026), poi **implementata lo stesso giorno in v1.7.0**: l'app è installabile dal browser senza store e senza costi.
 
 ### Quota Firestore (Spark) vs. uso previsto
 
@@ -400,11 +412,38 @@ Richiesti dopo il collaudo sul campo della Roadmap v2:
 - [x] **⚡ Paginazione ricettario**: `listRecipesPage` con `orderBy(saved_at) + limit(20) + startAfter(cursore)`; bottone "⬇️ Carica altre ricette". Nota: ricerca e filtri agiscono client-side sulle ricette caricate (hint in UI quando ci sono altre pagine)
 - [x] **📱 Fix nav diario su mobile**: frecce ‹ › compatte (classe dedicata `.diario-arrow`, esclusa dalla regola mobile `.action-button { width: 100% }`) affiancate al date picker
 
+### 🍽️ Composizione dei pasti a portate scelte (v1.8.0)
+
+**Problema:** generando un pranzo o una cena, il modello tende a proporre un menù completo (antipasto, primo, secondo, contorno, dolce) anche quando servirebbe solo "un primo e un contorno". Si generano più ricette del necessario (e si consuma più quota Gemini).
+
+**Soluzione UX scelta:** stessa logica a chip della scelta dei pasti. Quando l'utente seleziona 🍝 Pranzo o 🍽️ Cena, sotto le chip dei pasti compare un pannellino "Come componiamo il pranzo/la cena?" con:
+- **🤖 Decide lo chef** (default): comportamento identico a prima, il modello sceglie la struttura in base al contesto
+- chip delle portate **Antipasto / Primo / Secondo / Contorno / Dolce**: selezionandone una o più, il menù conterrà ESATTAMENTE quei piatti (uno per portata), niente di più
+
+Regole di comportamento:
+- selezionare una portata disattiva "Decide lo chef"; deselezionarle tutte lo riattiva (nessuno stato invalido possibile)
+- deselezionare il pasto azzera anche le sue portate
+- colazione e spuntini non hanno il pannello: la loro struttura è già leggera e adeguata
+- le portate scelte arrivano al prompt in ordine canonico (antipasto → dolce), qualunque sia l'ordine dei click
+- la rigenerazione del singolo piatto non cambia: già oggi impone un `role` simile al piatto sostituito
+
+Piano d'azione:
+- [x] `types/index.ts`: nuovo `CourseType`, alias `MealCourses`, campo `courses: MealCourses` in `UserInput`
+- [x] `aiService.ts`: `COURSE_ORDER`/`COURSE_LABELS` + hint di struttura del pasto (`mealStructureHint`) che, se ci sono portate scelte, impone "ESATTAMENTE queste portate, un piatto ciascuna, `role` = nome portata, NESSUN piatto in più"
+- [x] `App.tsx`: stato `courses` nel form, pannello portate sotto le chip dei pasti (solo per pranzo/cena selezionati), toggle con pulizia automatica alla deselezione del pasto
+- [x] `App.css`: stile del pannellino (bordo tratteggiato su sfondo `--bg`, chip più compatte, hint "verranno generati esattamente N piatti")
+- [x] Bump versione `package.json` → 1.8.0, `npm run build` + `npm run lint` verdi (6 Luglio 2026)
+- [ ] Deploy con `firebase deploy` e test sul campo
+
+**Criterio di completamento:** genero una cena scegliendo solo "Primo + Contorno" e ottengo esattamente 2 piatti; genero una cena con "Decide lo chef" e ottengo il comportamento di prima.
+
+**Nota (lesson learned #1):** il vincolo sul numero di portate vive solo nel prompt: la pipeline di normalizzazione non scarta piatti extra (tagliare a valle rischierebbe di eliminare una portata richiesta tenendo quella in più). Se il modello disobbedisce, si rigenera o si ignora il piatto in più.
+
 ### Fase 5+ — Oltre la roadmap (non pianificate)
 
 | Idea | Note |
 |------|------|
-| 📱 **PWA installabile** | `vite-plugin-pwa`, manifest + service worker, icone dal logo, istruzioni installazione iOS/Android; attenzione al login Google in standalone su iOS (eventuale `signInWithRedirect`) — rimandata il 6 Luglio 2026 per restare web-only |
+| 📱 ~~PWA installabile~~ | ✅ **Fatta in v1.7.0**: `vite-plugin-pwa`, manifest + SW autoUpdate, icone dal logo, `signInWithRedirect` in standalone iOS, `authDomain` = dominio hosting |
 | 🏪 **App negli store (Capacitor)** | Stessa codebase wrappata in nativo; richiede Apple Developer $99/anno e Google Play $25 — fuori dal vincolo "solo gratis" |
 | 💾 **Salvataggio menù interi** | Oggi si salvano i singoli piatti; si potrebbe persistere il menù completo con lista spesa e timeline |
 | 📊 **Statistiche diario** | Grafici settimanali/mensili kcal e macro |
@@ -414,4 +453,4 @@ Richiesti dopo il collaudo sul campo della Roadmap v2:
 ---
 
 *Documento tecnico del progetto CucinIAmo.*
-*Versione documento: 8.0 — 6 Luglio 2026*
+*Versione documento: 10.0 — 6 Luglio 2026*

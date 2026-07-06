@@ -16,6 +16,7 @@ import type {
   MenuOutput,
   Meal,
   MealType,
+  CourseType,
   Dish,
   Recipe,
   Ingredient,
@@ -70,6 +71,17 @@ export const MEAL_LABELS: Record<MealType, string> = {
   pranzo: 'Pranzo',
   cena: 'Cena',
   spuntino: 'Spuntini',
+};
+
+// Ordine canonico delle portate di pranzo/cena (per prompt e UI)
+export const COURSE_ORDER: CourseType[] = ['antipasto', 'primo', 'secondo', 'contorno', 'dolce'];
+
+export const COURSE_LABELS: Record<CourseType, string> = {
+  antipasto: 'Antipasto',
+  primo: 'Primo',
+  secondo: 'Secondo',
+  contorno: 'Contorno',
+  dolce: 'Dolce',
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -166,6 +178,18 @@ const MEAL_STRUCTURE_HINTS: Record<MealType, string> = {
     'SPUNTINI: 1-2 voci semplici e veloci per gli spuntini della giornata (es. metà mattina e merenda). Usa role "Spuntino".',
 };
 
+// Hint di struttura per un pasto: se l'utente ha scelto delle portate
+// (pranzo/cena), il vincolo diventa un elenco ESATTO; altrimenti vale
+// la linea guida libera di MEAL_STRUCTURE_HINTS.
+function mealStructureHint(input: UserInput, mealType: MealType): string {
+  const requested = input.courses?.[mealType];
+  if (!requested || requested.length === 0) return MEAL_STRUCTURE_HINTS[mealType];
+
+  // Ordine canonico, qualunque sia l'ordine di selezione nella UI
+  const labels = COURSE_ORDER.filter((c) => requested.includes(c)).map((c) => COURSE_LABELS[c]);
+  return `${MEAL_LABELS[mealType].toUpperCase()}: l'utente ha scelto ESATTAMENTE ${labels.length === 1 ? 'questa portata' : 'queste portate'}: ${labels.join(', ')}. Genera UN piatto per ciascuna portata indicata, in questo ordine, usando il nome della portata come "role". NON aggiungere NESSUN altro piatto: niente portate extra, bevande, antipasti o dolci non richiesti. Totale piatti per questo pasto: ${labels.length}.`;
+}
+
 function buildCaloriesSection(input: UserInput): string {
   if (!input.max_calories) {
     return `Nessun limite di calorie richiesto. Indica comunque per OGNI piatto una stima realistica di calorie e macronutrienti per porzione.`;
@@ -190,7 +214,7 @@ function buildMenuPrompt(input: UserInput): string {
   );
 
   const requestedMeals = MEAL_ORDER.filter((m) => input.meal_types.includes(m));
-  const mealHints = requestedMeals.map((m) => `• ${MEAL_STRUCTURE_HINTS[m]}`).join('\n');
+  const mealHints = requestedMeals.map((m) => `• ${mealStructureHint(input, m)}`).join('\n');
 
   return `
 Sei uno chef e nutrizionista esperto. Genera un menù COMPLETO per ${input.num_people} person${input.num_people === 1 ? 'a' : 'e'}, composto ESATTAMENTE da questi pasti: ${requestedMeals.map((m) => MEAL_LABELS[m].toUpperCase()).join(', ')}.

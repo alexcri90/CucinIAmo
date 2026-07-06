@@ -69,7 +69,10 @@ Esempio di com'è fatto una volta compilato:
 
 ```env
 VITE_FIREBASE_API_KEY=AIzaSyB...
-VITE_FIREBASE_AUTH_DOMAIN=cuciniamo.firebaseapp.com
+# ⚠️ come AUTH_DOMAIN usa il dominio del sito (PROJECT-ID.web.app), NON
+# quello .firebaseapp.com proposto dalla console: serve al login della
+# PWA installata su iPhone (vedi project_description.md, lesson 8)
+VITE_FIREBASE_AUTH_DOMAIN=cuciniamo.web.app
 VITE_FIREBASE_PROJECT_ID=cuciniamo
 VITE_FIREBASE_STORAGE_BUCKET=cuciniamo.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789012
@@ -77,6 +80,11 @@ VITE_FIREBASE_APP_ID=1:123456789012:web:abc123def456
 ```
 
 > 💡 Questi valori **non sono segreti** (finiscono comunque nel sito pubblico) ma il file `.env` è nel `.gitignore` per buona pratica. La sicurezza vera la fanno il login Google, l'allowlist e le Security Rules.
+
+> ⚠️ **Passaggio obbligatorio se usi il dominio `.web.app` come AUTH_DOMAIN** (come sopra): il client OAuth creato automaticamente da Firebase conosce solo il dominio `.firebaseapp.com`, quindi senza questo passaggio ogni login fresco fallisce con **"Errore 400: redirect_uri_mismatch"**. Vai su [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials) (stesso account Google, seleziona il progetto), apri **ID client OAuth 2.0 → "Web client (auto created by Google Service)"** e:
+> 1. in **URI di reindirizzamento autorizzati** aggiungi `https://IL-TUO-PROJECT-ID.web.app/__/auth/handler`
+> 2. in **Origini JavaScript autorizzate** aggiungi `https://IL-TUO-PROJECT-ID.web.app`
+> 3. Salva (attivo in pochi minuti). È tutto gratuito: stai solo configurando, non attivando servizi.
 
 ### 4️⃣ Attiva l'Authentication con Google
 
@@ -208,6 +216,8 @@ Se non vuoi farlo ora: lascia `VITE_RECAPTCHA_SITE_KEY` vuota, l'app funziona lo
 |---|---|---|
 | Schermata "Configurazione mancante" | Manca `frontend/.env` | Crea il file (step 3) e rifai la build/deploy |
 | `auth/unauthorized-domain` al login | Dominio non autorizzato | Authentication → Settings → Authorized domains → aggiungi il dominio. (`localhost`, `*.web.app` e `*.firebaseapp.com` del progetto sono già inclusi) |
+| "Errore 400: redirect_uri_mismatch" al login (o PWA bloccata sul caricamento) | AUTH_DOMAIN = `.web.app` ma il redirect URI non è registrato nel client OAuth di Google Cloud | Vedi il riquadro ⚠️ dello step 3: aggiungi `https://PROJECT-ID.web.app/__/auth/handler` agli URI di reindirizzamento autorizzati del "Web client (auto created by Google Service)" |
+| `npm run dev` → "Could not read package.json" | Comando lanciato dalla root del repo | Il frontend vive in `frontend/`: esegui `cd frontend` e poi `npm run dev` (invece `firebase deploy` va lanciato dalla root) |
 | Popup di login bloccato | Blocco popup del browser | Consenti i popup per il sito |
 | "Quota gratuita di Gemini esaurita" | Limite free tier (al minuto o al giorno) | Attendi 1 minuto e riprova, o cambia modello dal menù a tendina. Nessun costo |
 | "Il modello selezionato non è disponibile" | Un modello in preview è stato ritirato | Scegli un altro modello. La lista è in `frontend/src/services/aiService.ts` (costante `AVAILABLE_MODELS`) ed è facile da aggiornare |
