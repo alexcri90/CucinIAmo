@@ -7,9 +7,9 @@
 
 ## 📊 Stato del Progetto
 
-**Ultimo aggiornamento:** 6 Luglio 2026
-**Versione corrente:** 1.8.0
-**Stato Roadmap v2:** tutte e 4 le fasi implementate, deployate e **verificate sul campo** ✅, più i miglioramenti post-collaudo v1.6.0 (import da testo, condivisione, paginazione, fix mobile), la **PWA installabile** v1.7.0 e la **composizione dei pasti a portate scelte** v1.8.0. Prossime idee: vedi "Fase 5+"
+**Ultimo aggiornamento:** 24 Novembre 2026
+**Versione corrente:** 1.9.0
+**Stato Roadmap v2:** tutte e 4 le fasi implementate, deployate e **verificate sul campo** ✅, più i miglioramenti post-collaudo v1.6.0 (import da testo, condivisione, paginazione, fix mobile), la **PWA installabile** v1.7.0, la **composizione dei pasti a portate scelte** v1.8.0 e l'**aggiornamento ai modelli Gemini 3.8 / 4** v1.9.0 (la serie 2.x è deprecata). Prossime idee: vedi "Fase 5+"
 
 ### 🎯 Cos'è CucinIAmo
 
@@ -25,6 +25,7 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 
 | Versione | Contenuto |
 |----------|-----------|
+| **1.9.0** | **Aggiornamento modelli Gemini** (24 Novembre 2026): `AVAILABLE_MODELS` passa da 2.5 Flash/Flash-Lite/Pro + 3 Flash Preview (deprecati o in preview) a **gemini-3.8-flash** (default), **gemini-4-hydrogen**, **gemini-3.5-flash-lite**, **gemini-3.6-flash** — tutti stabili, gratuiti nel free tier, multimodali e con output JSON. Firebase JS SDK `^12` → `^13.4.0`; rimossa `temperature` dalla `generationConfig` (non supportata dai Gemini 3.x+); `type: 'inlineData'` esplicito nella Part della foto (union discriminata dell'SDK v13). Chi aveva salvato un modello vecchio in localStorage torna automaticamente al default |
 | **1.8.0** | **Composizione dei pasti a portate scelte**: per pranzo e cena l'utente può scegliere le portate esatte da generare (chip Antipasto/Primo/Secondo/Contorno/Dolce) oppure lasciare "🤖 Decide lo chef" (comportamento precedente); nuovo tipo `CourseType` + campo `courses` in `UserInput`, prompt con vincolo "ESATTAMENTE queste portate, nessun piatto in più" |
 | **1.7.0** | **PWA installabile + ritocchi form**: `vite-plugin-pwa` (manifest, service worker `autoUpdate`, precache + runtime caching Google Fonts, esclusione `/__/auth/*`), icone PWA generate dal logo (192/512/maskable/apple-touch), login a redirect per PWA standalone su iOS (`signInWithRedirect` + `getRedirectResult` in AuthGate) con `authDomain` spostato su `cuciniamo-ricette.web.app` (stesso dominio del sito, richiesto da Safari); form Genera: cucine suggerite ridotte a 7, respiro sopra il campo "Aggiungi un'altra cucina", bottone "+" di "Cosa evitare" allineato al gradiente brand |
 | **1.6.0** | **Import, condivisione, paginazione**: import ricette da testo libero via AI (`parseRecipeFromText` + modal "📥 Importa ricetta"), condivisione ricetta col menu nativo mobile (Web Share API, fallback copia negli appunti), paginazione del ricettario (`listRecipesPage`, 20 per pagina, bottone "Carica altre"), frecce compatte nella navigazione del diario su mobile |
@@ -52,7 +53,16 @@ CucinIAmo è l'evoluzione completa del vecchio "Christmas Menu Generator": da ge
 | AI | Firebase AI Logic → Gemini Developer API | Free tier, nessuna API key nel codice |
 | Protezione quota | Firebase App Check (opzionale) | reCAPTCHA v3, si attiva con `VITE_RECAPTCHA_SITE_KEY` |
 
-I modelli Gemini selezionabili dalla UI sono definiti in `frontend/src/services/aiService.ts` (costante `AVAILABLE_MODELS`): gemini-2.5-flash (default), flash-lite, 2.5-pro, gemini-3-flash-preview.
+I modelli Gemini selezionabili dalla UI sono definiti in `frontend/src/services/aiService.ts` (costante `AVAILABLE_MODELS`, verificata il 24 Novembre 2026): **gemini-3.8-flash** (default), **gemini-4-hydrogen**, **gemini-3.5-flash-lite**, **gemini-3.6-flash**. Tutti gratuiti nel free tier ("billing not required" su Firebase AI Logic). Firebase JS SDK: v13.x.
+
+| Modello | Perché è in lista |
+|---|---|
+| `gemini-3.8-flash` | Flash stabile più recente (GA 2 Set 2026): il miglior compromesso qualità/velocità |
+| `gemini-4-hydrogen` | Unico Gemini 4 gratuito (GA 12 Nov 2026); gli altri Gemini 4 (Neon, Carbon, Argon) sono **solo a pagamento** |
+| `gemini-3.5-flash-lite` | Il più rapido e leggero |
+| `gemini-3.6-flash` | Flash precedente, ripiego se gli altri hanno la quota giornaliera esaurita (le quote sono per modello) |
+
+Esclusi di proposito: la serie 2.x (2.0 spenta a Giugno 2026; 2.5 Flash e 2.5 Pro deprecati e reindirizzati dal 1° Dicembre 2026; 2.5 Flash-Lite limitato ai vecchi utenti), i modelli `-preview` (possono sparire) e le varianti TTS/Live/immagine (non servono qui).
 
 ---
 
@@ -251,8 +261,8 @@ Se il feedback di rigenerazione è una riga qualunque, il modello lo ignora. Ser
 ### 4. La config Firebase nel bundle è pubblica per design
 Non è un segreto: la sicurezza la fanno Authentication + Security Rules + allowlist. Per proteggere la **quota** gratuita da usi esterni c'è App Check (opzionale, già predisposto in `firebase.ts`).
 
-### 5. Modelli in preview vengono ritirati
-`AVAILABLE_MODELS` è volutamente una semplice lista in `aiService.ts`: quando un modello sparisce (errore 404) basta aggiornare la lista.
+### 5. I modelli vengono ritirati (anche quelli stabili)
+`AVAILABLE_MODELS` è volutamente una semplice lista in `aiService.ts`: quando un modello sparisce (errore 404) basta aggiornare la lista. Non solo i preview: a fine 2026 è toccato anche ai 2.5 stabili. Per verificare cosa è gratuito e cosa è in dismissione, le fonti ufficiali sono `aistudio.google.com/docs/pricing` (colonna "Free Tier"), `aistudio.google.com/docs/deprecations` e `firebase.google.com/docs/ai-logic/models` ("billing not required"). Le pagine `ai.google.dev/gemini-api/docs/*` ora reindirizzano su `aistudio.google.com/docs/*`. Attenzione: non tutti i modelli nuovi sono gratis (es. Gemini 4 Neon/Carbon/Argon no).
 
 ### 6. TypeScript: `import type` per le interfacce
 Con Vite/React usare sempre `import type { ... }` per i tipi, altrimenti in alcuni setup l'import runtime fallisce.
@@ -265,6 +275,9 @@ In una PWA standalone su iOS `signInWithPopup` non funziona: serve `signInWithRe
 
 ### 9. Cambiare authDomain richiede di registrare il redirect URI nel client OAuth
 Scoperto sul campo dopo il deploy v1.7.0: il client OAuth che Firebase crea automaticamente su Google Cloud autorizza solo `https://PROJECT.firebaseapp.com/__/auth/handler`. Spostando `authDomain` su `*.web.app` (lesson 8), OGNI login "fresco" (incognito, nuovo dispositivo, PWA) fallisce con **Errore 400: redirect_uri_mismatch** — chi era già loggato non se ne accorge, perché la sessione persistita non rifà il giro OAuth. Fix: Google Cloud Console → APIs & Services → Credentials → "Web client (auto created by Google Service)" → aggiungere `https://cuciniamo-ricette.web.app/__/auth/handler` agli **Authorized redirect URIs** (e il dominio alle Authorized JavaScript origins). Gratuito, propagazione in pochi minuti. Morale: dopo un cambio di authDomain, testare SEMPRE il login in incognito, non solo con la sessione esistente.
+
+### 10. Gemini 3.x+: niente `temperature`, e le Part hanno un `type`
+Dai modelli Gemini 3.x in poi `temperature`, `topP`, `topK` (e simili) non sono supportati: il Firebase JS SDK v13 li ha deprecati e Google consiglia di lasciare il default, perché abbassarli può degradare le risposte. `getModel` in `aiService.ts` imposta quindi solo `responseMimeType`. Sempre nell'SDK v13, le `Part` sono una union discriminata: l'immagine va passata come `{ type: 'inlineData', inlineData: {...} }` (senza `type` la build TypeScript fallisce).
 
 ---
 
@@ -453,4 +466,4 @@ Piano d'azione:
 ---
 
 *Documento tecnico del progetto CucinIAmo.*
-*Versione documento: 10.0 — 6 Luglio 2026*
+*Versione documento: 11.0 — 24 Novembre 2026*

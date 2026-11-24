@@ -150,7 +150,7 @@ AI_Recipes/
 - **Nessuna persistenza**: i menù vivono nello stato del browser; ricaricando la pagina si perdono (un diario calorie su Firestore è una possibile evoluzione futura)
 - **Le kcal sono stime**: i valori nutrizionali sono stimati dall'AI, non provengono da un database nutrizionale certificato — utili come ordine di grandezza, non per uso medico
 - **Rate limit Gemini free tier**: pochi req/min e quota giornaliera per modello; superata la quota si riceve un errore 429, mai un addebito
-- **Modelli in preview**: possono essere ritirati da Google; la lista dei modelli è in `frontend/src/services/aiService.ts` (costante `AVAILABLE_MODELS`)
+- **Modelli che invecchiano**: Google ritira periodicamente i modelli Gemini (a fine 2026 è toccato alla serie 2.5); la lista è in `frontend/src/services/aiService.ts` (costante `AVAILABLE_MODELS`) e oggi contiene solo modelli stabili e gratuiti: Gemini 3.8 Flash (default), Gemini 4 Hydrogen, Gemini 3.5 Flash Lite, Gemini 3.6 Flash
 
 ---
 

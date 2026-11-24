@@ -28,7 +28,14 @@ import type {
 
 // ─────────────────────────────────────────────────────────────────
 // MODELLI DISPONIBILI (selezionabili dalla UI)
-// Tutti accessibili dal free tier della Gemini Developer API.
+// Tutti modelli STABILI, gratuiti nel free tier della Gemini Developer
+// API ("billing not required" su Firebase AI Logic), multimodali
+// (servono le immagini per la stima kcal da foto) e con output JSON.
+// Verificato il 24 Novembre 2026 su aistudio.google.com/docs/pricing,
+// /docs/deprecations e firebase.google.com/docs/ai-logic/models.
+// NON aggiungere modelli Gemini 4 Neon/Carbon/Argon: sono solo a
+// pagamento. La serie 2.x è deprecata/spenta (2.5 Flash e 2.5 Pro
+// vengono reindirizzati dal 1° Dicembre 2026).
 // Per aggiungerne uno basta estendere questa lista.
 // ─────────────────────────────────────────────────────────────────
 
@@ -40,28 +47,28 @@ export interface ModelOption {
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   {
-    id: 'gemini-2.5-flash',
-    label: 'Gemini 2.5 Flash',
+    id: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
     description: 'Veloce e affidabile (consigliato)',
   },
   {
-    id: 'gemini-2.5-flash-lite',
-    label: 'Gemini 2.5 Flash Lite',
-    description: 'Il più rapido, quota gratuita più ampia',
+    id: 'gemini-4-hydrogen',
+    label: 'Gemini 4 Hydrogen',
+    description: 'Nuova generazione, il più capace tra i gratuiti',
   },
   {
-    id: 'gemini-2.5-pro',
-    label: 'Gemini 2.5 Pro',
-    description: 'Qualità massima, quota gratuita ridotta',
+    id: 'gemini-3.5-flash-lite',
+    label: 'Gemini 3.5 Flash Lite',
+    description: 'Il più rapido e leggero',
   },
   {
-    id: 'gemini-3-flash-preview',
-    label: 'Gemini 3 Flash (Preview)',
-    description: 'Il più recente, in anteprima',
+    id: 'gemini-3.6-flash',
+    label: 'Gemini 3.6 Flash',
+    description: 'Flash precedente, utile se gli altri hanno la quota esaurita',
   },
 ];
 
-export const DEFAULT_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_MODEL = 'gemini-3.8-flash';
 
 // Ordine di visualizzazione e generazione dei pasti
 export const MEAL_ORDER: MealType[] = ['colazione', 'pranzo', 'cena', 'spuntino'];
@@ -657,7 +664,12 @@ function mapAiError(error: unknown): Error {
   return new Error(`Errore durante la generazione: ${msg}`);
 }
 
-function getModel(modelId: string, systemInstruction: string, temperature: number) {
+// Niente `temperature` (né topP/topK): dai modelli Gemini 3.x in poi non
+// sono supportati (deprecati nel Firebase JS SDK v13) e Google consiglia
+// di lasciare il valore di default, perché abbassarlo può degradare le
+// risposte. La varietà nelle rigenerazioni la dà già il prompt ("DEVE
+// essere DIVERSO da...").
+function getModel(modelId: string, systemInstruction: string) {
   if (!firebase) {
     throw new Error('Firebase non è configurato. Crea il file frontend/.env (vedi .env.example).');
   }
@@ -665,7 +677,6 @@ function getModel(modelId: string, systemInstruction: string, temperature: numbe
     model: modelId,
     systemInstruction,
     generationConfig: {
-      temperature,
       responseMimeType: 'application/json',
     },
   });
@@ -679,7 +690,7 @@ function getModel(modelId: string, systemInstruction: string, temperature: numbe
  * Genera un menù completo (uno o più pasti) con il modello Gemini scelto.
  */
 export async function generateMenu(input: UserInput, modelId: string): Promise<MenuOutput> {
-  const model = getModel(modelId, CHEF_SYSTEM_PROMPT, 0.7);
+  const model = getModel(modelId, CHEF_SYSTEM_PROMPT);
   const prompt = buildMenuPrompt(input);
 
   let text: string;
@@ -720,7 +731,7 @@ export async function regenerateDish(
     throw new Error(`Piatto ${mealType}[${dishIndex}] non trovato nel menù.`);
   }
 
-  const model = getModel(modelId, CHEF_SYSTEM_PROMPT, 0.8);
+  const model = getModel(modelId, CHEF_SYSTEM_PROMPT);
   const prompt = buildRegenerationPrompt(menu, mealType, currentDish, userFeedback);
 
   let text: string;
@@ -766,7 +777,7 @@ const DISH_JSON_EXAMPLE = `{
  * in un Dish strutturato per il ricettario.
  */
 export async function parseRecipeFromText(text: string, modelId: string): Promise<Dish> {
-  const model = getModel(modelId, CHEF_SYSTEM_PROMPT, 0.3);
+  const model = getModel(modelId, CHEF_SYSTEM_PROMPT);
   const prompt = `
 Trascrivi questa ricetta (testo libero appuntato da un utente) nel formato JSON strutturato indicato sotto.
 
@@ -851,7 +862,7 @@ export async function estimateNutritionFromText(
   description: string,
   modelId: string
 ): Promise<NutritionEstimate> {
-  const model = getModel(modelId, NUTRITIONIST_SYSTEM_PROMPT, 0.3);
+  const model = getModel(modelId, NUTRITIONIST_SYSTEM_PROMPT);
   const prompt = `
 Stima calorie e macronutrienti di questo cibo/pasto:
 
@@ -884,7 +895,7 @@ export async function estimateNutritionFromPhoto(
   mimeType: string,
   modelId: string
 ): Promise<NutritionEstimate> {
-  const model = getModel(modelId, NUTRITIONIST_SYSTEM_PROMPT, 0.3);
+  const model = getModel(modelId, NUTRITIONIST_SYSTEM_PROMPT);
   const prompt = `
 Osserva la foto allegata di un piatto/cibo e stima calorie e macronutrienti della porzione visibile.
 
@@ -903,7 +914,8 @@ Regole:
   try {
     const result = await model.generateContent([
       prompt,
-      { inlineData: { mimeType, data: base64Image } },
+      // Firebase JS SDK v13: le Part sono una union con `type` esplicito
+      { type: 'inlineData', inlineData: { mimeType, data: base64Image } },
     ]);
     text = result.response.text();
   } catch (error) {
